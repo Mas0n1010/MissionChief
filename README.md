@@ -8,6 +8,14 @@ Take command of an RNLI lifeboat station and save lives at sea! Manage your flee
 
 ## Features
 
+### Game Interface
+- **Professional Main Menu** with animated ocean background
+- **Interactive Operations Map** showing Poole Harbour area with real-time tracking
+- **Modern UI Design** with smooth animations and gradients
+- **Three-Panel Layout** for easy management of station, missions, and fleet
+- **Real-time Mission Log** tracking all activities
+
+### Lifeboats & Missions
 - **8 Authentic RNLI Lifeboat Classes**
   - All-Weather Lifeboats: Shannon, Severn, Tamar, Mersey, Trent
   - Inshore Lifeboats: Atlantic 85, Atlantic 75, D-Class
@@ -22,20 +30,32 @@ Take command of an RNLI lifeboat station and save lives at sea! Manage your flee
   - Yacht in Distress
   - Fishing Vessel Emergency
 
-- **Real-time Gameplay**
-  - Missions generate automatically
-  - Realistic mission times based on distance and boat speed
-  - Track your rescues and lives saved
-  - Earn credits to purchase more lifeboats
+### Gameplay Features
+- **Real-time Map Visualization** - Watch lifeboats travel to missions
+- **Live Position Tracking** - See your fleet's movements on the map
+- **Mission Markers** - Visual indicators for all active emergencies
+- **Automatic Mission Generation** - New emergencies appear regularly
+- **Realistic Mission Times** - Based on distance and boat speed
+- **Statistics Tracking** - Monitor rescues and lives saved
+- **Credit System** - Earn money to expand your fleet
 
 ## How to Play
 
-1. **Open the game**: Simply open `index.html` in a web browser
-2. **Wait for emergencies**: Missions will start appearing after a few seconds
-3. **Dispatch lifeboats**: Select an available lifeboat and dispatch it to a mission
-4. **Complete rescues**: Your lifeboat will automatically complete the mission and return
-5. **Earn credits**: Successful rescues earn you credits
-6. **Expand your fleet**: Use credits to purchase additional lifeboats from the shop
+1. **Open the game**: Simply open `index.html` in a web browser to see the main menu
+2. **Start Game**: Click "Start New Game" from the main menu
+3. **Monitor the map**: Watch for new emergencies appearing on the operations map
+4. **Dispatch lifeboats**: Select an available lifeboat from the dropdown and dispatch it to a mission
+5. **Track progress**: Watch your lifeboat travel to the mission location on the map
+6. **Complete rescues**: The lifeboat will automatically complete the mission and return to station
+7. **Earn credits**: Successful rescues earn you £3,000-£10,000
+8. **Expand your fleet**: Use credits to purchase additional lifeboats from the shop
+9. **Manage resources**: Balance responding to urgent missions while keeping boats available
+
+### Interface Guide
+- **Left Panel**: Station info, operations map, and your fleet
+- **Center Panel**: Active missions and mission log
+- **Right Panel**: Lifeboat shop for purchasing new vessels
+- **Top Bar**: Current credits, total rescues, and lives saved
 
 ## Game Mechanics
 
@@ -63,17 +83,25 @@ Smaller, faster boats perfect for coastal rescues:
 
 ## Strategy Tips
 
-1. Start by saving up credits to buy your second lifeboat
-2. The D-Class is the most affordable way to expand your fleet quickly
-3. Urgent missions (marked with 🚨) should be prioritized
-4. Balance your fleet between fast inshore boats and capable all-weather boats
-5. Always keep at least one lifeboat available for urgent emergencies
+1. **Watch the Map** - Keep an eye on the operations map to see where missions appear
+2. **Build Your Fleet Early** - Start by saving up credits to buy your second lifeboat
+3. **Budget Option** - The D-Class (£50,000) is the most affordable way to expand your fleet quickly
+4. **Prioritize Urgent Missions** - Missions marked with 🚨 should be handled first
+5. **Balance Your Fleet** - Mix fast inshore boats for nearby missions with all-weather boats for distant ones
+6. **Keep Reserves** - Always keep at least one lifeboat available for urgent emergencies
+7. **Monitor Distance** - Check mission distances and match them with appropriate boat speeds
+8. **Track Progress** - Use the map to see which lifeboats are en route and when they'll return
 
 ## Technical Details
 
 - **Technology**: Pure HTML, CSS, and JavaScript (no frameworks required)
-- **Browser Compatibility**: Works in all modern browsers
+- **Canvas-Based Map**: Real-time rendering with animated waves and coastline
+- **Responsive Design**: Adapts to different screen sizes and devices
+- **Smooth Animations**: CSS transitions and keyframe animations throughout
+- **Modern UI**: Gradients, shadows, and glassmorphism effects
+- **Browser Compatibility**: Works in all modern browsers (Chrome, Firefox, Safari, Edge)
 - **No Installation Required**: Just open and play!
+- **No Backend Needed**: Fully client-side application
 
 ## About the RNLI
 
@@ -81,18 +109,29 @@ The Royal National Lifeboat Institution (RNLI) is a charity that saves lives at 
 
 This game is a tribute to the brave volunteer crews who risk their lives to save others at sea.
 
+## Screenshots
+
+![Main Menu](docs/screenshots/menu.png)
+![Game Interface](docs/screenshots/game.png)
+![Operations Map](docs/screenshots/map.png)
+
+*(Screenshots to be added)*
+
 ## Future Enhancements
 
 Potential features for future versions:
-- Multiple lifeboat stations
-- Weather conditions affecting missions
-- Crew management
-- Training requirements
-- Seasonal challenges
-- Helicopter support
-- More detailed mission scenarios
-- Save/load game functionality
-- Leaderboards
+- **Multiple Lifeboat Stations** - Manage stations across different coastal locations
+- **Dynamic Weather** - Weather conditions affecting mission difficulty and boat performance
+- **Crew Management** - Recruit, train, and manage volunteer crew members
+- **Day/Night Cycle** - Time-based gameplay with different challenges
+- **Seasonal Events** - Summer tourist rescues vs. winter storm emergencies
+- **Helicopter Support** - Coordinate with coastguard helicopters for evacuations
+- **Detailed Scenarios** - Story-driven missions based on real RNLI rescues
+- **Save/Load System** - Continue your progress across sessions
+- **Achievements** - Unlock badges and awards for rescue milestones
+- **Leaderboards** - Compare your rescue statistics with other players
+- **Sound Effects** - Ocean ambience, radio chatter, and boat engines
+- **Advanced Statistics** - Detailed analytics and performance metrics
 
 ## Credits
 
