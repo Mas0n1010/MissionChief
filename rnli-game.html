@@ -4,54 +4,71 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RNLI Mission Chief - Sea Rescue Dispatch</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin=""/>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+
     <link rel="stylesheet" href="rnli-game.css">
 </head>
 <body>
     <!-- Top Navigation Bar -->
     <nav class="top-nav">
         <div class="nav-brand">
-            <span class="logo">🚤</span>
-            <h1>RNLI Mission Chief</h1>
+            <div class="logo-text">
+                <span class="logo-line-1">RNLI</span>
+                <span class="logo-line-2">MISSION CHIEF</span>
+            </div>
         </div>
         <div class="nav-stats">
             <div class="nav-stat">
-                <span class="stat-icon">💰</span>
-                <span class="stat-label">Credits:</span>
-                <span id="nav-credits" class="stat-value">50000</span>
+                <span class="stat-label">Credits</span>
+                <span id="nav-credits" class="stat-value">£50,000</span>
             </div>
             <div class="nav-stat">
-                <span class="stat-icon">⚓</span>
-                <span class="stat-label">Stations:</span>
+                <span class="stat-label">Stations</span>
                 <span id="nav-stations" class="stat-value">1</span>
             </div>
             <div class="nav-stat">
-                <span class="stat-icon">🚤</span>
-                <span class="stat-label">Lifeboats:</span>
+                <span class="stat-label">Lifeboats</span>
                 <span id="nav-boats" class="stat-value">1</span>
             </div>
         </div>
-        <button class="btn-menu" onclick="toggleMenu()">☰ Menu</button>
+        <button class="btn-menu" onclick="toggleMenu()">
+            <span class="menu-icon">☰</span> MENU
+        </button>
     </nav>
 
     <!-- Side Menu -->
     <div id="side-menu" class="side-menu">
-        <button class="close-menu" onclick="toggleMenu()">✕</button>
-        <h2>Dispatch Center</h2>
+        <button class="close-menu" onclick="toggleMenu()">×</button>
+        <h2>DISPATCH CENTER</h2>
         <div class="menu-section">
             <button class="menu-btn" onclick="showPanel('stations')">
-                <span>⚓</span> Lifeboat Stations
+                <span class="menu-icon-text">📍</span>
+                <span class="menu-text">LIFEBOAT STATIONS</span>
             </button>
             <button class="menu-btn" onclick="showPanel('vehicles')">
-                <span>🚤</span> Your Fleet
+                <span class="menu-icon-text">🚢</span>
+                <span class="menu-text">YOUR FLEET</span>
             </button>
             <button class="menu-btn" onclick="showPanel('build')">
-                <span>🏗️</span> Build Station
+                <span class="menu-icon-text">➕</span>
+                <span class="menu-text">BUILD STATION</span>
             </button>
             <button class="menu-btn" onclick="showPanel('shop')">
-                <span>🛒</span> Buy Lifeboats
+                <span class="menu-icon-text">🛒</span>
+                <span class="menu-text">BUY LIFEBOATS</span>
             </button>
             <button class="menu-btn" onclick="showPanel('stats')">
-                <span>📊</span> Statistics
+                <span class="menu-icon-text">📊</span>
+                <span class="menu-text">STATISTICS</span>
             </button>
         </div>
     </div>
@@ -60,18 +77,13 @@
     <div class="game-layout">
         <!-- Map Section -->
         <div class="map-section">
-            <div class="map-controls">
-                <button onclick="game.zoomIn()">+</button>
-                <button onclick="game.zoomOut()">-</button>
-                <button onclick="game.centerMap()">⌖</button>
-            </div>
             <div id="game-map" class="game-map"></div>
         </div>
 
         <!-- Mission List Section -->
         <div class="mission-section">
             <div class="section-header">
-                <h2>🚨 Active Missions</h2>
+                <h2>ACTIVE MISSIONS</h2>
                 <span id="mission-count" class="count-badge">0</span>
             </div>
             <div id="mission-list" class="mission-list">

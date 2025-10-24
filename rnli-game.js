@@ -46,7 +46,7 @@ class RNLIGame {
             id: this.stationIdCounter++,
             name: 'Poole Lifeboat Station',
             location: 'Poole, Dorset',
-            coordinates: { x: 0.5, y: 0.5 },
+            coordinates: { x: 0.21, y: 0.55 }, // Real Poole position
             capacity: 2,
             vehicles: []
         };
@@ -224,6 +224,8 @@ class RNLIGame {
             if (vehicle && vehicle.status === 'available') {
                 vehicle.status = 'dispatched';
                 vehicle.currentMission = missionId;
+                vehicle.progress = 0; // Start at station
+                vehicle.dispatchTime = Date.now();
                 mission.dispatched.push(vid);
                 dispatched++;
             }
@@ -239,6 +241,14 @@ class RNLIGame {
 
             const arrivalTime = Math.random() * 30000 + 15000; // 15-45 seconds
 
+            // Animate lifeboat progress
+            vehicleIds.forEach(vid => {
+                const vehicle = this.vehicles.find(v => v.id === vid);
+                if (vehicle) {
+                    this.animateVehicle(vehicle, arrivalTime);
+                }
+            });
+
             setTimeout(() => {
                 this.arriveAtMission(missionId);
             }, arrivalTime);
@@ -247,6 +257,23 @@ class RNLIGame {
         }
 
         return false;
+    }
+
+    animateVehicle(vehicle, duration) {
+        const startTime = Date.now();
+        const interval = setInterval(() => {
+            if (vehicle.status !== 'dispatched') {
+                clearInterval(interval);
+                return;
+            }
+
+            const elapsed = Date.now() - startTime;
+            vehicle.progress = Math.min(elapsed / duration, 1);
+
+            if (vehicle.progress >= 1) {
+                clearInterval(interval);
+            }
+        }, 100); // Update every 100ms for smooth animation
     }
 
     arriveAtMission(missionId) {
@@ -339,15 +366,17 @@ class RNLIGame {
     }
 
     getLocationCoordinates(location) {
+        // Coordinates mapped to UK south coast locations (normalized 0-1)
+        // West (0) = Weymouth area, East (1) = Brighton area
         const locations = {
-            'poole': { name: 'Poole, Dorset', coords: { x: 0.5, y: 0.5 } },
-            'weymouth': { name: 'Weymouth, Dorset', coords: { x: 0.3, y: 0.6 } },
-            'swanage': { name: 'Swanage, Dorset', coords: { x: 0.6, y: 0.7 } },
-            'lymington': { name: 'Lymington, Hampshire', coords: { x: 0.7, y: 0.4 } },
-            'yarmouth': { name: 'Yarmouth, Isle of Wight', coords: { x: 0.75, y: 0.5 } },
-            'bembridge': { name: 'Bembridge, Isle of Wight', coords: { x: 0.8, y: 0.6 } },
-            'selsey': { name: 'Selsey, West Sussex', coords: { x: 0.85, y: 0.45 } },
-            'brighton': { name: 'Brighton, East Sussex', coords: { x: 0.9, y: 0.5 } }
+            'poole': { name: 'Poole, Dorset', coords: { x: 0.21, y: 0.55 } },
+            'weymouth': { name: 'Weymouth, Dorset', coords: { x: 0.05, y: 0.45 } },
+            'swanage': { name: 'Swanage, Dorset', coords: { x: 0.35, y: 0.25 } },
+            'lymington': { name: 'Lymington, Hampshire', coords: { x: 0.45, y: 0.65 } },
+            'yarmouth': { name: 'Yarmouth, Isle of Wight', coords: { x: 0.42, y: 0.40 } },
+            'bembridge': { name: 'Bembridge, Isle of Wight', coords: { x: 0.60, y: 0.25 } },
+            'selsey': { name: 'Selsey, West Sussex', coords: { x: 0.75, y: 0.35 } },
+            'brighton': { name: 'Brighton, East Sussex', coords: { x: 0.95, y: 0.50 } }
         };
         return locations[location] || locations['poole'];
     }
@@ -463,6 +492,27 @@ class RNLIGame {
         const mapElement = document.getElementById('game-map');
         if (!mapElement) return;
 
+        // Initialize Leaflet map centered on UK south coast (Poole area)
+        this.map = L.map('game-map', {
+            center: [50.712, -1.987],
+            zoom: 10,
+            zoomControl: true,
+            scrollWheelZoom: true
+        });
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 18,
+            minZoom: 8
+        }).addTo(this.map);
+
+        // Initialize marker layers
+        this.stationMarkers = {};
+        this.missionMarkers = {};
+        this.lifeboatMarkers = {};
+
+        // Initial render
         this.renderMap();
 
         // Update map every second
@@ -471,55 +521,134 @@ class RNLIGame {
         }, 1000);
     }
 
+    // Convert normalized coordinates (0-1) to real lat/lng
+    normalizedToLatLng(coords) {
+        // Map area: UK south coast
+        // Longitude: -2.5 (west) to -0.1 (east)
+        // Latitude: 50.6 (south) to 51.0 (north)
+        const lng = -2.5 + (coords.x * 2.4);
+        const lat = 50.6 + (coords.y * 0.4);
+        return [lat, lng];
+    }
+
     renderMap() {
-        const mapElement = document.getElementById('game-map');
-        if (!mapElement) return;
+        if (!this.map) return;
 
-        const width = mapElement.clientWidth;
-        const height = mapElement.clientHeight;
-
-        let mapHTML = '';
-
-        // Draw stations
+        // Update station markers
         this.stations.forEach(station => {
-            const x = station.coordinates.x * width;
-            const y = station.coordinates.y * height;
-            mapHTML += `
-                <div class="map-marker station-marker" style="left: ${x}px; top: ${y}px;" title="${station.name}">
-                    ⚓
-                </div>
-            `;
+            const latLng = this.normalizedToLatLng(station.coordinates);
+
+            if (!this.stationMarkers[station.id]) {
+                // Create new station marker
+                const icon = L.divIcon({
+                    className: 'station-marker',
+                    html: '<div style="width: 32px; height: 32px; background: #27ae60; border: 3px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; color: white; font-weight: bold;">⚓</div>',
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 16]
+                });
+
+                const marker = L.marker(latLng, { icon: icon }).addTo(this.map);
+                marker.bindPopup(`<strong>${station.name}</strong><br>${station.location}`);
+                this.stationMarkers[station.id] = marker;
+            } else {
+                // Update existing marker position
+                this.stationMarkers[station.id].setLatLng(latLng);
+            }
         });
 
-        // Draw missions
+        // Remove station markers that no longer exist
+        Object.keys(this.stationMarkers).forEach(id => {
+            if (!this.stations.find(s => s.id == id)) {
+                this.map.removeLayer(this.stationMarkers[id]);
+                delete this.stationMarkers[id];
+            }
+        });
+
+        // Update mission markers
         this.missions.forEach(mission => {
-            const x = mission.coordinates.x * width;
-            const y = mission.coordinates.y * height;
-            const colorClass = mission.status === 'waiting' ? 'red' : mission.status === 'enroute' ? 'yellow' : 'green';
-            mapHTML += `
-                <div class="map-marker mission-marker ${colorClass}" style="left: ${x}px; top: ${y}px;"
-                     onclick="game.showMissionDetail(${mission.id})" title="${mission.title}">
-                    🚨
-                </div>
-            `;
+            const latLng = this.normalizedToLatLng(mission.coordinates);
+
+            if (!this.missionMarkers[mission.id]) {
+                // Create new mission marker
+                const color = mission.status === 'waiting' ? '#e74c3c' :
+                             mission.status === 'enroute' ? '#f39c12' : '#27ae60';
+
+                const icon = L.divIcon({
+                    className: 'mission-marker',
+                    html: `<div style="width: 36px; height: 36px; background: ${color}; border: 3px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; animation: pulse-mission 2s infinite;">🚨</div>`,
+                    iconSize: [36, 36],
+                    iconAnchor: [18, 18]
+                });
+
+                const marker = L.marker(latLng, { icon: icon }).addTo(this.map);
+                marker.on('click', () => this.showMissionDetail(mission.id));
+                marker.bindPopup(`<strong>${mission.title}</strong><br>${mission.location}<br>${mission.peopleInDanger} people in danger`);
+                this.missionMarkers[mission.id] = marker;
+            } else {
+                // Update marker color based on status
+                const color = mission.status === 'waiting' ? '#e74c3c' :
+                             mission.status === 'enroute' ? '#f39c12' : '#27ae60';
+
+                const icon = L.divIcon({
+                    className: 'mission-marker',
+                    html: `<div style="width: 36px; height: 36px; background: ${color}; border: 3px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; animation: pulse-mission 2s infinite;">🚨</div>`,
+                    iconSize: [36, 36],
+                    iconAnchor: [18, 18]
+                });
+
+                this.missionMarkers[mission.id].setIcon(icon);
+                this.missionMarkers[mission.id].setLatLng(latLng);
+            }
         });
 
-        mapElement.innerHTML = mapHTML;
-    }
+        // Remove mission markers that no longer exist
+        Object.keys(this.missionMarkers).forEach(id => {
+            if (!this.missions.find(m => m.id == id)) {
+                this.map.removeLayer(this.missionMarkers[id]);
+                delete this.missionMarkers[id];
+            }
+        });
 
-    zoomIn() {
-        this.mapZoom *= 1.2;
-        this.renderMap();
-    }
+        // Update lifeboat markers
+        this.vehicles.forEach(vehicle => {
+            if (vehicle.status === 'dispatched' && vehicle.currentMission) {
+                const mission = this.missions.find(m => m.id === vehicle.currentMission);
+                const station = this.stations.find(s => s.id === vehicle.stationId);
 
-    zoomOut() {
-        this.mapZoom /= 1.2;
-        this.renderMap();
-    }
+                if (mission && station) {
+                    // Calculate lifeboat position (interpolate between station and mission)
+                    const progress = vehicle.progress || 0;
+                    const stationLatLng = this.normalizedToLatLng(station.coordinates);
+                    const missionLatLng = this.normalizedToLatLng(mission.coordinates);
 
-    centerMap() {
-        this.mapOffset = { x: 0, y: 0 };
-        this.renderMap();
+                    const lat = stationLatLng[0] + (missionLatLng[0] - stationLatLng[0]) * progress;
+                    const lng = stationLatLng[1] + (missionLatLng[1] - stationLatLng[1]) * progress;
+
+                    if (!this.lifeboatMarkers[vehicle.id]) {
+                        // Create new lifeboat marker
+                        const icon = L.divIcon({
+                            className: 'lifeboat-marker',
+                            html: '<div style="width: 28px; height: 28px; background: #3498db; border: 3px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px;">🚤</div>',
+                            iconSize: [28, 28],
+                            iconAnchor: [14, 14]
+                        });
+
+                        const marker = L.marker([lat, lng], { icon: icon }).addTo(this.map);
+                        marker.bindPopup(`<strong>${vehicle.name}</strong><br>${vehicle.type}<br>En route to mission`);
+                        this.lifeboatMarkers[vehicle.id] = marker;
+                    } else {
+                        // Update existing marker position
+                        this.lifeboatMarkers[vehicle.id].setLatLng([lat, lng]);
+                    }
+                }
+            } else {
+                // Remove lifeboat marker when not dispatched
+                if (this.lifeboatMarkers[vehicle.id]) {
+                    this.map.removeLayer(this.lifeboatMarkers[vehicle.id]);
+                    delete this.lifeboatMarkers[vehicle.id];
+                }
+            }
+        });
     }
 
     // UI Updates
@@ -530,7 +659,7 @@ class RNLIGame {
     }
 
     updateNav() {
-        document.getElementById('nav-credits').textContent = this.credits.toLocaleString();
+        document.getElementById('nav-credits').textContent = '£' + this.credits.toLocaleString();
         document.getElementById('nav-stations').textContent = this.stations.length;
         document.getElementById('nav-boats').textContent = this.vehicles.length;
     }
