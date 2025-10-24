@@ -1,5 +1,115 @@
 // RNLI Mission Chief - Game Logic
 
+class Map {
+    constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d');
+        this.stationPos = { x: 0.3, y: 0.6 }; // Station at Poole (relative position)
+
+        this.resize();
+        this.draw();
+
+        // Redraw map periodically
+        setInterval(() => this.draw(), 100);
+    }
+
+    resize() {
+        const container = this.canvas.parentElement;
+        this.canvas.width = container.clientWidth;
+        this.canvas.height = container.clientHeight;
+    }
+
+    draw() {
+        const { width, height } = this.canvas;
+        const ctx = this.ctx;
+
+        // Clear canvas
+        ctx.clearRect(0, 0, width, height);
+
+        // Draw water with waves
+        const gradient = ctx.createLinearGradient(0, 0, 0, height);
+        gradient.addColorStop(0, '#87CEEB');
+        gradient.addColorStop(1, '#4682B4');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+
+        // Draw some wave patterns
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.lineWidth = 2;
+        for (let i = 0; i < 5; i++) {
+            ctx.beginPath();
+            const offset = (Date.now() / 1000 + i * 20) % 100;
+            for (let x = 0; x < width; x += 10) {
+                const y = height * 0.3 + Math.sin((x + offset * 10) / 30) * 10 + i * 15;
+                if (x === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+        }
+
+        // Draw coastline (Poole Harbour area)
+        ctx.fillStyle = '#d2b48c';
+        ctx.beginPath();
+        ctx.moveTo(0, height * 0.5);
+        ctx.quadraticCurveTo(width * 0.2, height * 0.4, width * 0.4, height * 0.5);
+        ctx.lineTo(width * 0.4, height);
+        ctx.lineTo(0, height);
+        ctx.closePath();
+        ctx.fill();
+
+        // Draw harbour entrance
+        ctx.fillStyle = '#8B7355';
+        ctx.fillRect(width * 0.28, height * 0.5, 10, height * 0.2);
+        ctx.fillRect(width * 0.32, height * 0.5, 10, height * 0.2);
+    }
+
+    toPixels(relativePos) {
+        return {
+            x: relativePos.x * this.canvas.width,
+            y: relativePos.y * this.canvas.height
+        };
+    }
+
+    drawStation() {
+        const pos = this.toPixels(this.stationPos);
+        const marker = this.createMarker(pos.x, pos.y, 'station');
+        return marker;
+    }
+
+    drawMission(mission) {
+        const pos = this.toPixels(mission.position);
+        const marker = this.createMarker(pos.x, pos.y, 'mission', mission.id);
+        return marker;
+    }
+
+    drawLifeboat(lifeboat, mission) {
+        if (!mission || !mission.position) return null;
+
+        // Interpolate position between station and mission
+        const progress = lifeboat.progress || 0;
+        const startPos = this.stationPos;
+        const endPos = mission.position;
+
+        const currentPos = {
+            x: startPos.x + (endPos.x - startPos.x) * progress,
+            y: startPos.y + (endPos.y - startPos.y) * progress
+        };
+
+        const pos = this.toPixels(currentPos);
+        const marker = this.createMarker(pos.x, pos.y, 'lifeboat', lifeboat.id);
+        return marker;
+    }
+
+    createMarker(x, y, type, id) {
+        const marker = document.createElement('div');
+        marker.className = `map-marker marker-${type}`;
+        marker.style.left = x + 'px';
+        marker.style.top = y + 'px';
+        if (id !== undefined) marker.dataset.id = id;
+        return marker;
+    }
+}
+
 class Game {
     constructor() {
         this.credits = 10000;
@@ -9,12 +119,14 @@ class Game {
         this.missions = [];
         this.missionIdCounter = 0;
         this.lifeboatIdCounter = 0;
+        this.map = new Map('map-canvas');
 
         // Initialize with one basic lifeboat
         this.addLifeboat('Atlantic 85');
 
         this.updateUI();
         this.startMissionGenerator();
+        this.startMapUpdate();
     }
 
     addLifeboat(type) {
@@ -54,6 +166,14 @@ class Game {
         const randomType = types[Math.floor(Math.random() * types.length)];
         const template = MISSION_TYPES[randomType];
 
+        // Generate random position on the map (avoiding land)
+        const angle = Math.random() * Math.PI * 2;
+        const distance = Math.random() * 0.4 + 0.2; // 0.2 to 0.6 from station
+        const position = {
+            x: Math.max(0.35, Math.min(0.95, 0.3 + Math.cos(angle) * distance)),
+            y: Math.max(0.1, Math.min(0.9, 0.6 + Math.sin(angle) * distance))
+        };
+
         const mission = {
             id: this.missionIdCounter++,
             type: randomType,
@@ -65,12 +185,14 @@ class Game {
             reward: template.reward,
             urgent: Math.random() > 0.7,
             assignedLifeboat: null,
-            startTime: Date.now()
+            startTime: Date.now(),
+            position: position
         };
 
         this.missions.push(mission);
         this.addLog(`🚨 NEW EMERGENCY: ${mission.title} - ${mission.peopleInDanger} people in danger!`, 'emergency');
         this.updateUI();
+        this.updateMap();
     }
 
     dispatchLifeboat(missionId, lifeboatId) {
@@ -82,6 +204,8 @@ class Game {
         mission.assignedLifeboat = lifeboatId;
         lifeboat.status = 'on-mission';
         lifeboat.currentMission = missionId;
+        lifeboat.progress = 0;
+        lifeboat.dispatchTime = Date.now();
 
         this.addLog(`${lifeboat.name} dispatched to ${mission.title}`, 'info');
 
@@ -89,11 +213,14 @@ class Game {
         const duration = (mission.distance / lifeboat.speed) * 3600000; // Convert to milliseconds
         const missionTime = duration + (Math.random() * 60000 + 30000); // Add 30-90 seconds mission time
 
+        lifeboat.missionDuration = missionTime;
+
         setTimeout(() => {
             this.completeMission(missionId, lifeboatId);
         }, missionTime);
 
         this.updateUI();
+        this.updateMap();
     }
 
     completeMission(missionId, lifeboatId) {
@@ -122,8 +249,53 @@ class Game {
         this.missions.splice(missionIndex, 1);
         lifeboat.status = 'available';
         lifeboat.currentMission = null;
+        lifeboat.progress = 0;
 
         this.updateUI();
+        this.updateMap();
+    }
+
+    startMapUpdate() {
+        // Update lifeboat positions on map every 100ms
+        setInterval(() => {
+            this.lifeboats.forEach(lifeboat => {
+                if (lifeboat.status === 'on-mission' && lifeboat.dispatchTime) {
+                    const elapsed = Date.now() - lifeboat.dispatchTime;
+                    lifeboat.progress = Math.min(1, elapsed / lifeboat.missionDuration);
+                }
+            });
+            this.updateMap();
+        }, 100);
+    }
+
+    updateMap() {
+        const markersContainer = document.getElementById('map-markers');
+        if (!markersContainer) return;
+
+        markersContainer.innerHTML = '';
+
+        // Draw station marker
+        const stationMarker = this.map.drawStation();
+        markersContainer.appendChild(stationMarker);
+
+        // Draw mission markers
+        this.missions.forEach(mission => {
+            const missionMarker = this.map.drawMission(mission);
+            markersContainer.appendChild(missionMarker);
+        });
+
+        // Draw lifeboat markers
+        this.lifeboats.forEach(lifeboat => {
+            if (lifeboat.status === 'on-mission') {
+                const mission = this.missions.find(m => m.id === lifeboat.currentMission);
+                if (mission) {
+                    const lifeboatMarker = this.map.drawLifeboat(lifeboat, mission);
+                    if (lifeboatMarker) {
+                        markersContainer.appendChild(lifeboatMarker);
+                    }
+                }
+            }
+        });
     }
 
     addLog(message, type = 'info') {

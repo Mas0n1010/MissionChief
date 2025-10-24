@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RNLI Mission Chief - Sea Rescue Simulation</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <h1>🚤 RNLI Mission Chief</h1>
+                    <p class="tagline">Saving Lives at Sea</p>
+                </div>
+                <div class="header-right">
+                    <a href="index.html" class="btn-menu">Main Menu</a>
+                </div>
+            </div>
+        </header>
+
+        <div class="stats-bar">
+            <div class="stat">
+                <div class="stat-icon">💰</div>
+                <div class="stat-info">
+                    <span class="stat-label">Credits</span>
+                    <span id="credits" class="stat-value">10000</span>
+                </div>
+            </div>
+            <div class="stat">
+                <div class="stat-icon">🆘</div>
+                <div class="stat-info">
+                    <span class="stat-label">Rescues</span>
+                    <span id="rescues" class="stat-value">0</span>
+                </div>
+            </div>
+            <div class="stat">
+                <div class="stat-icon">👥</div>
+                <div class="stat-info">
+                    <span class="stat-label">Lives Saved</span>
+                    <span id="livesSaved" class="stat-value">0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="left-panel">
+                <section class="station-info">
+                    <h2>📍 Lifeboat Station</h2>
+                    <div class="station-card">
+                        <h3 id="stationName">Poole Lifeboat Station</h3>
+                        <p class="station-location">Poole Harbour, Dorset</p>
+                        <div class="station-status">
+                            <span class="status-indicator active"></span>
+                            <span>Station Active</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="map-section">
+                    <h2>🗺️ Operations Map</h2>
+                    <div id="map-container" class="map-container">
+                        <canvas id="map-canvas"></canvas>
+                        <div id="map-markers"></div>
+                    </div>
+                    <div class="map-legend">
+                        <div class="legend-item">
+                            <span class="legend-color" style="background: #4CAF50;"></span>
+                            <span>Station</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color" style="background: #ff9800;"></span>
+                            <span>Mission</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color" style="background: #2196F3;"></span>
+                            <span>En Route</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="lifeboats-section">
+                    <h2>⚓ Your Fleet</h2>
+                    <div id="lifeboat-list" class="lifeboat-list">
+                        <!-- Lifeboats will be added here by JavaScript -->
+                    </div>
+                </section>
+            </div>
+
+            <div class="center-panel">
+                <section class="missions-section">
+                    <h2>🚨 Active Missions</h2>
+                    <div id="mission-list" class="mission-list">
+                        <p class="no-missions">No active missions. Waiting for emergencies...</p>
+                    </div>
+                </section>
+
+                <section class="log-section">
+                    <h2>📋 Mission Log</h2>
+                    <div id="mission-log" class="mission-log">
+                        <p class="log-entry info">Welcome to RNLI Mission Chief! Your station is ready to save lives at sea.</p>
+                    </div>
+                </section>
+            </div>
+
+            <div class="right-panel">
+                <section class="shop-section">
+                    <h2>🛒 Purchase Lifeboats</h2>
+                    <div id="shop-list" class="shop-list">
+                        <!-- Available lifeboats for purchase will be added here -->
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
