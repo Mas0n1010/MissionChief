@@ -1,6 +1,26 @@
 # RNLI Mission Chief
 
-A web-based sea rescue simulation game where you manage a Royal National Lifeboat Institution (RNLI) station and respond to maritime emergencies.
+A web-based emergency dispatch simulation game where you manage RNLI (Royal National Lifeboat Institution) operations and respond to maritime emergencies.
+
+## Game Versions
+
+This repository contains two different game versions:
+
+### 1. RNLI Mission Chief - Dispatch Simulation (`rnli-game.html`)
+**Mission Chief style dispatch game** - Build stations, buy lifeboats, dispatch to missions
+- Map-based interface with stations and missions
+- Build lifeboat stations at coastal locations
+- Purchase and manage fleet of RNLI lifeboats
+- Dispatch lifeboats to maritime emergencies
+- Earn credits from completed rescues
+- Expand your operations across the coast
+
+### 2. RNLI Rescue Manager - Action Simulation (`game.html`)
+**Direct action game** - Control lifeboats in real-time with animated map
+- Single station focused gameplay
+- Watch lifeboats travel to missions in real-time
+- Interactive canvas map with animated waves
+- Simpler, more arcade-style experience
 
 ## About
 
@@ -39,7 +59,54 @@ Take command of an RNLI lifeboat station and save lives at sea! Manage your flee
 - **Statistics Tracking** - Monitor rescues and lives saved
 - **Credit System** - Earn money to expand your fleet
 
-## How to Play
+---
+
+## RNLI Mission Chief - Dispatch Simulation
+
+### How to Play
+
+1. **Open `rnli-game.html`** in your web browser
+2. **Start with:** £50,000 credits, 1 station (Poole), and 1 Atlantic 85 lifeboat
+3. **Watch for missions** appearing on the map (red markers)
+4. **Click missions** to see details and dispatch available lifeboats
+5. **Complete missions** to earn credits and save lives
+6. **Expand your operations:**
+   - Build new stations at different coastal locations (£100,000 each)
+   - Purchase lifeboats for your stations (£50,000 - £2,500,000)
+   - Manage multiple stations and fleets simultaneously
+
+### Features
+
+**Game Mechanics:**
+- **10 Mission Types:** Person overboard, vessel in distress, capsized boats, medical emergencies, cliff rescues, and more
+- **Color-Coded Status:** Red (waiting), Yellow (en route), Green (on scene)
+- **8 Coastal Locations:** Poole, Weymouth, Swanage, Lymington, Yarmouth, Bembridge, Selsey, Brighton
+- **7 Lifeboat Classes:** From D-Class (£50k) to Tamar Class (£2.5M)
+- **Credits System:** Earn £2,000-£10,000 per rescue
+- **Statistics Tracking:** Rescues, lives saved, total earnings, failed missions
+
+**Interface:**
+- **Map View:** See all your stations and active missions at a glance
+- **Mission List:** Right sidebar showing all active emergencies
+- **Dispatch Center Menu:**
+  - ⚓ View all lifeboat stations
+  - 🚤 Manage your entire fleet
+  - 🏗️ Build new stations
+  - 🛒 Shop for lifeboats
+  - 📊 View statistics
+
+### Strategy Tips
+1. **Start Small:** Save up for a D-Class (£50k) as your second boat
+2. **Build Strategically:** Place stations to cover different coastal areas
+3. **Balance Your Fleet:** Mix fast inshore boats with capable all-weather lifeboats
+4. **Watch Mission Requirements:** Some missions need 2+ lifeboats
+5. **Expand Capacity:** Stations can hold 2 boats initially (expandable)
+
+---
+
+## RNLI Rescue Manager - Action Simulation
+
+### How to Play
 
 1. **Open the game**: Simply open `index.html` in a web browser to see the main menu
 2. **Start Game**: Click "Start New Game" from the main menu
