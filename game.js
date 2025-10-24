@@ -588,6 +588,12 @@ function dispatchToMission(missionId) {
 // Initialize game
 let game;
 window.onload = () => {
-    game = new Game();
-    console.log('RNLI Mission Chief loaded successfully!');
+    try {
+        console.log('Initializing RNLI Mission Chief...');
+        game = new Game();
+        console.log('RNLI Mission Chief loaded successfully!');
+    } catch (error) {
+        console.error('Error initializing game:', error);
+        alert('Error starting game: ' + error.message + '\n\nPlease check the browser console (F12) for more details.');
+    }
 };
