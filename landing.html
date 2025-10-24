@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RNLI Mission Chief - Sea Rescue Dispatch</title>
+    <title>RNLI Mission Chief - UK Coastal Rescue Simulation</title>
     <style>
         * {
             margin: 0;
@@ -12,8 +12,8 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0a1128 0%, #1e3a8a 50%, #0f4c75 100%);
+            font-family: 'Arial', 'Helvetica', sans-serif;
+            background: linear-gradient(135deg, #003d5c 0%, #001f3f 50%, #002d47 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -23,17 +23,17 @@
 
         .container {
             text-align: center;
-            max-width: 800px;
+            max-width: 900px;
             padding: 40px;
             background: rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
+            border-radius: 12px;
             backdrop-filter: blur(10px);
-            border: 3px solid rgba(255, 255, 255, 0.2);
+            border: 3px solid #fbb034;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
         }
 
         .logo {
-            font-size: 8em;
+            font-size: 6em;
             margin-bottom: 20px;
             animation: float 3s ease-in-out infinite;
             filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.5));
@@ -41,80 +41,74 @@
 
         @keyframes float {
             0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-20px); }
+            50% { transform: translateY(-15px); }
         }
 
         h1 {
-            font-size: 3.5em;
+            font-size: 3em;
             margin-bottom: 15px;
             text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
-            font-weight: 900;
+            font-weight: bold;
             letter-spacing: 2px;
+            color: #fbb034;
+        }
+
+        .subtitle {
+            font-size: 1.3em;
+            margin-bottom: 10px;
+            opacity: 0.95;
+            font-weight: bold;
         }
 
         p {
-            font-size: 1.4em;
-            margin-bottom: 40px;
-            opacity: 0.9;
+            font-size: 1.1em;
+            margin-bottom: 35px;
+            opacity: 0.85;
             line-height: 1.6;
         }
 
-        .buttons {
-            display: flex;
-            gap: 20px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            padding: 20px 50px;
-            font-size: 1.3em;
-            font-weight: 700;
+        .btn-play {
+            padding: 20px 60px;
+            font-size: 1.5em;
+            font-weight: bold;
             text-decoration: none;
-            border-radius: 15px;
+            border-radius: 8px;
             transition: all 0.3s;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            border: 3px solid rgba(255, 255, 255, 0.3);
+            letter-spacing: 2px;
+            border: 3px solid #e09422;
             display: inline-block;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            background: #fbb034;
+            color: #003d5c;
         }
 
-        .btn-primary {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        .btn-play:hover {
+            background: #e09422;
             transform: translateY(-5px) scale(1.05);
-            box-shadow: 0 12px 36px rgba(239, 68, 68, 0.6);
-        }
-
-        .btn-secondary {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-            transform: translateY(-5px) scale(1.05);
-            box-shadow: 0 12px 36px rgba(59, 130, 246, 0.6);
+            box-shadow: 0 12px 36px rgba(251, 176, 52, 0.6);
         }
 
         .features {
             margin-top: 50px;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 20px;
             text-align: left;
         }
 
         .feature {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.08);
             padding: 20px;
-            border-radius: 12px;
-            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            border: 2px solid rgba(251, 176, 52, 0.3);
+            transition: all 0.3s;
+        }
+
+        .feature:hover {
+            border-color: #fbb034;
+            background: rgba(255, 255, 255, 0.12);
+            transform: translateY(-3px);
         }
 
         .feature-icon {
@@ -123,31 +117,66 @@
         }
 
         .feature h3 {
-            font-size: 1.2em;
-            margin-bottom: 10px;
+            font-size: 1.15em;
+            margin-bottom: 8px;
+            color: #fbb034;
         }
 
         .feature p {
-            font-size: 0.95em;
+            font-size: 0.9em;
             margin: 0;
+            opacity: 0.9;
+        }
+
+        .stats {
+            margin-top: 40px;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 20px;
+            padding: 30px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            border: 2px solid rgba(251, 176, 52, 0.3);
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #fbb034;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .stat-label {
+            font-size: 1em;
+            opacity: 0.8;
+            margin-top: 5px;
         }
 
         @media (max-width: 768px) {
             .logo {
-                font-size: 5em;
+                font-size: 4em;
             }
 
             h1 {
-                font-size: 2.5em;
+                font-size: 2em;
+            }
+
+            .subtitle {
+                font-size: 1.1em;
             }
 
             p {
-                font-size: 1.1em;
+                font-size: 1em;
             }
 
-            .btn {
-                padding: 15px 35px;
-                font-size: 1.1em;
+            .btn-play {
+                padding: 15px 40px;
+                font-size: 1.2em;
             }
         }
     </style>
@@ -155,34 +184,71 @@
 <body>
     <div class="container">
         <div class="logo">🚤</div>
-        <h1>RNLI Mission Chief</h1>
-        <p>Build your lifeboat stations, manage your fleet, and save lives at sea!</p>
+        <h1>RNLI MISSION CHIEF</h1>
+        <p class="subtitle">UK Coastal Rescue Simulation</p>
+        <p>Build and manage your coastal rescue service. Deploy lifeboats, helicopters, and rescue teams to save lives at sea.</p>
 
-        <div class="buttons">
-            <a href="rnli-game.html" class="btn btn-primary">Play Dispatch Game</a>
-            <a href="game.html" class="btn btn-secondary">Play Action Game</a>
+        <a href="rnli-game.html" class="btn-play">🚨 Start Game</a>
+
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-number">4</div>
+                <div class="stat-label">Station Types</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number">9</div>
+                <div class="stat-label">Unit Types</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number">7</div>
+                <div class="stat-label">Mission Types</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number">5</div>
+                <div class="stat-label">Crew Training</div>
+            </div>
         </div>
 
         <div class="features">
             <div class="feature">
                 <div class="feature-icon">⚓</div>
                 <h3>Build Stations</h3>
-                <p>Create lifeboat stations at 8 coastal locations around the UK</p>
+                <p>Lifeboat stations, beach lifeguard posts, coastguard bases, and air rescue facilities</p>
             </div>
             <div class="feature">
                 <div class="feature-icon">🚤</div>
                 <h3>Manage Fleet</h3>
-                <p>Purchase and deploy 7 authentic RNLI lifeboat classes</p>
+                <p>ILBs, ALBs, rescue watercraft, cliff rescue teams, SAR helicopters, and more</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">👥</div>
+                <h3>Train Crew</h3>
+                <p>Recruit and train crew in night ops, swift water, cliff access, casualty care, and winch ops</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🗺️</div>
+                <h3>Real Map</h3>
+                <p>Interactive OpenStreetMap of UK south coast with real-time unit tracking</p>
             </div>
             <div class="feature">
                 <div class="feature-icon">🚨</div>
                 <h3>Rescue Missions</h3>
-                <p>Respond to 10 different maritime emergency types</p>
+                <p>From beach rescues to offshore mayday calls - respond to coastal emergencies</p>
             </div>
             <div class="feature">
                 <div class="feature-icon">💰</div>
-                <h3>Earn Credits</h3>
-                <p>Complete rescues to earn credits and expand operations</p>
+                <h3>Earn Funding</h3>
+                <p>Complete missions to earn funding and expand your rescue capabilities</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">📈</div>
+                <h3>Progression</h3>
+                <p>Unlock new mission types and advanced capabilities as you grow</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🤝</div>
+                <h3>Coordination</h3>
+                <p>Coordinate RNLI lifeboats, HM Coastguard teams, and SAR helicopters</p>
             </div>
         </div>
     </div>
