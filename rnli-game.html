@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RNLI Mission Chief - Sea Rescue Dispatch</title>
+    <link rel="stylesheet" href="rnli-game.css">
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <nav class="top-nav">
+        <div class="nav-brand">
+            <span class="logo">🚤</span>
+            <h1>RNLI Mission Chief</h1>
+        </div>
+        <div class="nav-stats">
+            <div class="nav-stat">
+                <span class="stat-icon">💰</span>
+                <span class="stat-label">Credits:</span>
+                <span id="nav-credits" class="stat-value">50000</span>
+            </div>
+            <div class="nav-stat">
+                <span class="stat-icon">⚓</span>
+                <span class="stat-label">Stations:</span>
+                <span id="nav-stations" class="stat-value">1</span>
+            </div>
+            <div class="nav-stat">
+                <span class="stat-icon">🚤</span>
+                <span class="stat-label">Lifeboats:</span>
+                <span id="nav-boats" class="stat-value">1</span>
+            </div>
+        </div>
+        <button class="btn-menu" onclick="toggleMenu()">☰ Menu</button>
+    </nav>
+
+    <!-- Side Menu -->
+    <div id="side-menu" class="side-menu">
+        <button class="close-menu" onclick="toggleMenu()">✕</button>
+        <h2>Dispatch Center</h2>
+        <div class="menu-section">
+            <button class="menu-btn" onclick="showPanel('stations')">
+                <span>⚓</span> Lifeboat Stations
+            </button>
+            <button class="menu-btn" onclick="showPanel('vehicles')">
+                <span>🚤</span> Your Fleet
+            </button>
+            <button class="menu-btn" onclick="showPanel('build')">
+                <span>🏗️</span> Build Station
+            </button>
+            <button class="menu-btn" onclick="showPanel('shop')">
+                <span>🛒</span> Buy Lifeboats
+            </button>
+            <button class="menu-btn" onclick="showPanel('stats')">
+                <span>📊</span> Statistics
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Game Area -->
+    <div class="game-layout">
+        <!-- Map Section -->
+        <div class="map-section">
+            <div class="map-controls">
+                <button onclick="game.zoomIn()">+</button>
+                <button onclick="game.zoomOut()">-</button>
+                <button onclick="game.centerMap()">⌖</button>
+            </div>
+            <div id="game-map" class="game-map"></div>
+        </div>
+
+        <!-- Mission List Section -->
+        <div class="mission-section">
+            <div class="section-header">
+                <h2>🚨 Active Missions</h2>
+                <span id="mission-count" class="count-badge">0</span>
+            </div>
+            <div id="mission-list" class="mission-list">
+                <div class="no-missions">
+                    <p>No active emergencies</p>
+                    <small>Missions will appear automatically</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Panels -->
+    <div id="modal-overlay" class="modal-overlay" onclick="closeModal()"></div>
+
+    <!-- Stations Panel -->
+    <div id="stations-panel" class="modal-panel">
+        <div class="panel-header">
+            <h2>⚓ Lifeboat Stations</h2>
+            <button class="close-btn" onclick="closeModal()">✕</button>
+        </div>
+        <div class="panel-content">
+            <div id="stations-list"></div>
+        </div>
+    </div>
+
+    <!-- Vehicles Panel -->
+    <div id="vehicles-panel" class="modal-panel">
+        <div class="panel-header">
+            <h2>🚤 Your Fleet</h2>
+            <button class="close-btn" onclick="closeModal()">✕</button>
+        </div>
+        <div class="panel-content">
+            <div id="vehicles-list"></div>
+        </div>
+    </div>
+
+    <!-- Build Station Panel -->
+    <div id="build-panel" class="modal-panel">
+        <div class="panel-header">
+            <h2>🏗️ Build Lifeboat Station</h2>
+            <button class="close-btn" onclick="closeModal()">✕</button>
+        </div>
+        <div class="panel-content">
+            <div class="build-info">
+                <h3>Build New Station</h3>
+                <p>Lifeboat stations allow you to house and dispatch rescue vessels.</p>
+                <div class="cost-info">
+                    <strong>Cost:</strong> £100,000<br>
+                    <strong>Capacity:</strong> 2 lifeboats (expandable)<br>
+                    <strong>Build Time:</strong> Instant
+                </div>
+                <input type="text" id="station-name" placeholder="Station Name (e.g., Poole Lifeboat Station)" class="input-field">
+                <select id="station-location" class="input-field">
+                    <option value="">Select Coastal Location</option>
+                    <option value="poole">Poole, Dorset</option>
+                    <option value="weymouth">Weymouth, Dorset</option>
+                    <option value="swanage">Swanage, Dorset</option>
+                    <option value="lymington">Lymington, Hampshire</option>
+                    <option value="yarmouth">Yarmouth, Isle of Wight</option>
+                    <option value="bembridge">Bembridge, Isle of Wight</option>
+                    <option value="selsey">Selsey, West Sussex</option>
+                    <option value="brighton">Brighton, East Sussex</option>
+                </select>
+                <button class="btn-primary" onclick="game.buildStation()">Build Station - £100,000</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shop Panel -->
+    <div id="shop-panel" class="modal-panel">
+        <div class="panel-header">
+            <h2>🛒 Buy Lifeboats</h2>
+            <button class="close-btn" onclick="closeModal()">✕</button>
+        </div>
+        <div class="panel-content">
+            <div id="shop-content"></div>
+        </div>
+    </div>
+
+    <!-- Stats Panel -->
+    <div id="stats-panel" class="modal-panel">
+        <div class="panel-header">
+            <h2>📊 Statistics</h2>
+            <button class="close-btn" onclick="closeModal()">✕</button>
+        </div>
+        <div class="panel-content">
+            <div id="stats-content"></div>
+        </div>
+    </div>
+
+    <!-- Mission Details Modal -->
+    <div id="mission-detail-panel" class="modal-panel modal-panel-small">
+        <div class="panel-header">
+            <h2 id="mission-detail-title">Mission Details</h2>
+            <button class="close-btn" onclick="closeModal()">✕</button>
+        </div>
+        <div class="panel-content">
+            <div id="mission-detail-content"></div>
+        </div>
+    </div>
+
+    <script src="rnli-game.js"></script>
+</body>
+</html>
