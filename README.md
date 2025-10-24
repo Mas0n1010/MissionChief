@@ -206,9 +206,49 @@ Created as a sea rescue simulation inspired by the incredible work of the RNLI.
 
 *Note: This is a fan-made game and is not officially affiliated with the RNLI.*
 
-## How to Run
+## How to Run Locally
 
-Simply open `index.html` in your web browser. No server or installation required!
+### Option 1: Direct File Opening
+Simply open `landing.html` in your web browser. No server required!
+
+### Option 2: Local Server (Recommended for full functionality)
+```bash
+# Using Python
+python3 -m http.server 8000
+
+# Using Node.js
+npx http-server -p 8000
+
+# Then visit: http://localhost:8000/landing.html
+```
+
+## Deploy to Vercel
+
+### Quick Deploy (Recommended)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/yourusername/MissionChief)
+
+### Manual Deployment
+
+1. **Install Vercel CLI**:
+   ```bash
+   npm install -g vercel
+   ```
+
+2. **Deploy**:
+   ```bash
+   vercel
+   ```
+
+3. **Follow prompts** and your game will be live!
+
+### Deploy via GitHub
+1. Push this repo to GitHub
+2. Go to [vercel.com](https://vercel.com)
+3. Click "New Project"
+4. Import from GitHub
+5. Deploy!
+
+See [DEPLOY.md](./DEPLOY.md) for detailed deployment instructions.
 
 ---
 
