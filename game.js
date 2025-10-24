@@ -3,7 +3,17 @@
 class Map {
     constructor(canvasId) {
         this.canvas = document.getElementById(canvasId);
+        if (!this.canvas) {
+            console.error('Canvas element not found:', canvasId);
+            return;
+        }
+
         this.ctx = this.canvas.getContext('2d');
+        if (!this.ctx) {
+            console.error('Could not get 2D context from canvas');
+            return;
+        }
+
         this.stationPos = { x: 0.3, y: 0.6 }; // Station at Poole (relative position)
 
         this.resize();
@@ -14,12 +24,18 @@ class Map {
     }
 
     resize() {
+        if (!this.canvas) return;
+
         const container = this.canvas.parentElement;
-        this.canvas.width = container.clientWidth;
-        this.canvas.height = container.clientHeight;
+        if (!container) return;
+
+        this.canvas.width = container.clientWidth || 400;
+        this.canvas.height = container.clientHeight || 400;
     }
 
     draw() {
+        if (!this.canvas || !this.ctx) return;
+
         const { width, height } = this.canvas;
         const ctx = this.ctx;
 
@@ -64,6 +80,8 @@ class Map {
     }
 
     toPixels(relativePos) {
+        if (!this.canvas) return { x: 0, y: 0 };
+
         return {
             x: relativePos.x * this.canvas.width,
             y: relativePos.y * this.canvas.height
@@ -71,19 +89,23 @@ class Map {
     }
 
     drawStation() {
+        if (!this.canvas) return null;
+
         const pos = this.toPixels(this.stationPos);
         const marker = this.createMarker(pos.x, pos.y, 'station');
         return marker;
     }
 
     drawMission(mission) {
+        if (!this.canvas || !mission || !mission.position) return null;
+
         const pos = this.toPixels(mission.position);
         const marker = this.createMarker(pos.x, pos.y, 'mission', mission.id);
         return marker;
     }
 
     drawLifeboat(lifeboat, mission) {
-        if (!mission || !mission.position) return null;
+        if (!this.canvas || !mission || !mission.position) return null;
 
         // Interpolate position between station and mission
         const progress = lifeboat.progress || 0;
@@ -270,18 +292,22 @@ class Game {
 
     updateMap() {
         const markersContainer = document.getElementById('map-markers');
-        if (!markersContainer) return;
+        if (!markersContainer || !this.map) return;
 
         markersContainer.innerHTML = '';
 
         // Draw station marker
         const stationMarker = this.map.drawStation();
-        markersContainer.appendChild(stationMarker);
+        if (stationMarker) {
+            markersContainer.appendChild(stationMarker);
+        }
 
         // Draw mission markers
         this.missions.forEach(mission => {
             const missionMarker = this.map.drawMission(mission);
-            markersContainer.appendChild(missionMarker);
+            if (missionMarker) {
+                markersContainer.appendChild(missionMarker);
+            }
         });
 
         // Draw lifeboat markers
