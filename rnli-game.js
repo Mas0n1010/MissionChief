@@ -341,27 +341,47 @@ class RNLIGame {
 
     initMap() {
         const mapElement = document.getElementById('game-map');
-        if (!mapElement) return;
+        if (!mapElement) {
+            console.error('Map element not found!');
+            return;
+        }
 
-        // Initialize Leaflet map centered on UK south coast
-        this.map = L.map('game-map', {
-            center: [50.712, -1.987],
-            zoom: 10,
-            zoomControl: false
-        });
+        // Check if Leaflet is loaded
+        if (typeof L === 'undefined') {
+            console.error('Leaflet library not loaded!');
+            mapElement.innerHTML = '<div style="padding: 20px; color: red; background: white;">Error: Map library failed to load. Please refresh the page.</div>';
+            return;
+        }
 
-        // Add OpenStreetMap tiles
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors',
-            maxZoom: 18,
-            minZoom: 8
-        }).addTo(this.map);
+        try {
+            // Initialize Leaflet map centered on UK south coast (Poole)
+            this.map = L.map('game-map', {
+                center: [50.712, -1.987],
+                zoom: 11,
+                zoomControl: false,
+                attributionControl: true
+            });
 
-        // Render initial markers
-        this.renderMap();
+            // Add OpenStreetMap tiles
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap',
+                maxZoom: 18,
+                minZoom: 8
+            }).addTo(this.map);
 
-        // Update map every 2 seconds
-        setInterval(() => this.renderMap(), 2000);
+            // Wait for map to be ready
+            this.map.whenReady(() => {
+                console.log('Map initialized successfully');
+                this.renderMap();
+            });
+
+            // Update map every 2 seconds
+            setInterval(() => this.renderMap(), 2000);
+
+        } catch (error) {
+            console.error('Error initializing map:', error);
+            mapElement.innerHTML = '<div style="padding: 20px; color: red; background: white;">Error initializing map: ' + error.message + '</div>';
+        }
     }
 
     // ==================== MISSION SYSTEM ====================
@@ -718,39 +738,85 @@ class RNLIGame {
     renderMap() {
         if (!this.map) return;
 
-        // Render stations
+        // Render stations with labels
         this.stations.forEach(station => {
             if (!this.stationMarkers[station.id]) {
+                const stationTypes = this.getStationTypes();
+                const template = stationTypes[station.type];
+                const units = this.fleet.filter(u => u.stationId === station.id && u.status === 'available');
+
                 const icon = L.divIcon({
-                    className: 'station-marker',
-                    html: '<div style="width: 32px; height: 32px; background: #27ae60; border: 3px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px;">⚓</div>',
-                    iconSize: [32, 32],
-                    iconAnchor: [16, 16]
+                    className: 'custom-marker station-marker-custom',
+                    html: `
+                        <div style="text-align: center;">
+                            <div style="width: 40px; height: 40px; background: #27ae60; border: 4px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); margin: 0 auto;">
+                                ⚓
+                            </div>
+                            <div style="background: white; color: #27ae60; font-weight: bold; font-size: 11px; padding: 3px 6px; border-radius: 3px; border: 2px solid #27ae60; margin-top: 4px; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">
+                                ${station.name.split(' ')[0]}<br><span style="font-size: 9px;">${units.length} units</span>
+                            </div>
+                        </div>
+                    `,
+                    iconSize: [80, 80],
+                    iconAnchor: [40, 40]
                 });
 
                 const marker = L.marker([station.coordinates.lat, station.coordinates.lng], { icon: icon }).addTo(this.map);
-                marker.bindPopup(`<strong>${station.name}</strong><br>${station.location}`);
-                marker.on('click', () => this.showStationDetail(station.id));
+                marker.bindPopup(`
+                    <strong>${station.name}</strong><br>
+                    ${station.location}<br>
+                    <strong>Type:</strong> ${template.name}<br>
+                    <strong>Available Units:</strong> ${units.length}
+                `);
+                marker.on('click', () => {
+                    this.showStationDetail(station.id);
+                    this.map.setView([station.coordinates.lat, station.coordinates.lng], 13);
+                });
                 this.stationMarkers[station.id] = marker;
             }
         });
 
-        // Render missions
+        // Render missions with urgency indicators
         this.missions.forEach(mission => {
             if (!this.missionMarkers[mission.id]) {
-                const color = mission.urgency === 'critical' ? '#c0392b' :
-                             mission.urgency === 'high' ? '#e74c3c' : '#f39c12';
+                const urgencyColors = {
+                    'critical': '#c0392b',
+                    'high': '#e74c3c',
+                    'medium': '#f39c12',
+                    'low': '#f1c40f'
+                };
+                const color = urgencyColors[mission.urgency] || '#f39c12';
+
+                const urgencyLabel = mission.urgency.toUpperCase();
 
                 const icon = L.divIcon({
-                    className: 'mission-marker',
-                    html: `<div style="width: 36px; height: 36px; background: ${color}; border: 3px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; animation: pulse-mission 2s infinite;">🚨</div>`,
-                    iconSize: [36, 36],
-                    iconAnchor: [18, 18]
+                    className: 'custom-marker mission-marker-custom',
+                    html: `
+                        <div style="text-align: center;">
+                            <div style="width: 50px; height: 50px; background: ${color}; border: 4px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); animation: pulse-mission 2s infinite; margin: 0 auto;">
+                                🚨
+                            </div>
+                            <div style="background: ${color}; color: white; font-weight: bold; font-size: 10px; padding: 3px 8px; border-radius: 3px; border: 2px solid white; margin-top: 4px; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.4);">
+                                ${urgencyLabel}<br><span style="font-size: 9px;">£${(mission.reward / 1000).toFixed(0)}k</span>
+                            </div>
+                        </div>
+                    `,
+                    iconSize: [90, 90],
+                    iconAnchor: [45, 45]
                 });
 
                 const marker = L.marker([mission.coordinates.lat, mission.coordinates.lng], { icon: icon }).addTo(this.map);
-                marker.bindPopup(`<strong>${mission.title}</strong><br>${mission.location}`);
-                marker.on('click', () => this.showMissionDetail(mission.id));
+                marker.bindPopup(`
+                    <strong>${mission.title}</strong><br>
+                    ${mission.location}<br>
+                    <strong>Urgency:</strong> ${mission.urgency.toUpperCase()}<br>
+                    <strong>Reward:</strong> £${mission.reward.toLocaleString()}<br>
+                    <strong>Required:</strong> ${mission.requiredUnits.join(', ')}
+                `);
+                marker.on('click', () => {
+                    this.showMissionDetail(mission.id);
+                    this.map.setView([mission.coordinates.lat, mission.coordinates.lng], 13);
+                });
                 this.missionMarkers[mission.id] = marker;
             }
         });
@@ -763,7 +829,7 @@ class RNLIGame {
             }
         });
 
-        // Render units on mission
+        // Render units on mission with progress indicators
         this.fleet.forEach(unit => {
             if (unit.status === 'dispatched' && unit.currentMission !== null) {
                 const mission = this.missions.find(m => m.id === unit.currentMission);
@@ -773,18 +839,42 @@ class RNLIGame {
                     const lat = station.coordinates.lat + (mission.coordinates.lat - station.coordinates.lat) * unit.progress;
                     const lng = station.coordinates.lng + (mission.coordinates.lng - station.coordinates.lng) * unit.progress;
 
+                    const progressPercent = Math.round(unit.progress * 100);
+
                     if (this.unitMarkers[unit.id]) {
                         this.unitMarkers[unit.id].setLatLng([lat, lng]);
+                        // Update progress in popup
+                        const popupContent = `
+                            <strong>${unit.name}</strong><br>
+                            ${unit.type}<br>
+                            <strong>Progress:</strong> ${progressPercent}%<br>
+                            <strong>To:</strong> ${mission.location}
+                        `;
+                        this.unitMarkers[unit.id].setPopupContent(popupContent);
                     } else {
                         const icon = L.divIcon({
-                            className: 'lifeboat-marker',
-                            html: '<div style="width: 28px; height: 28px; background: #3498db; border: 3px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px;">🚤</div>',
-                            iconSize: [28, 28],
-                            iconAnchor: [14, 14]
+                            className: 'custom-marker lifeboat-marker-custom',
+                            html: `
+                                <div style="text-align: center;">
+                                    <div style="width: 36px; height: 36px; background: #3498db; border: 4px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); margin: 0 auto;">
+                                        🚤
+                                    </div>
+                                    <div style="background: #3498db; color: white; font-weight: bold; font-size: 9px; padding: 2px 5px; border-radius: 3px; border: 2px solid white; margin-top: 4px; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">
+                                        ${progressPercent}%
+                                    </div>
+                                </div>
+                            `,
+                            iconSize: [60, 60],
+                            iconAnchor: [30, 30]
                         });
 
                         const marker = L.marker([lat, lng], { icon: icon }).addTo(this.map);
-                        marker.bindPopup(`<strong>${unit.name}</strong><br>En route to mission`);
+                        marker.bindPopup(`
+                            <strong>${unit.name}</strong><br>
+                            ${unit.type}<br>
+                            <strong>Progress:</strong> ${progressPercent}%<br>
+                            <strong>To:</strong> ${mission.location}
+                        `);
                         this.unitMarkers[unit.id] = marker;
                     }
                 }
