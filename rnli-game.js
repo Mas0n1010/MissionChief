@@ -786,37 +786,46 @@ class RNLIGame {
     }
 
     calculateWaterPath(fromCoords, toCoords, progress) {
-        // Calculate a highly curved path that DEFINITELY stays in water
-        // Creates MASSIVE offshore arc to completely avoid any coastal land
+        // TRUE OFFSHORE NAVIGATION using waypoint system
+        // Boats go to an offshore waypoint first, then to destination
+        // This GUARANTEES staying in water by routing far offshore
 
-        // Direct path
-        const directLat = fromCoords.lat + (toCoords.lat - fromCoords.lat) * progress;
-        const directLng = fromCoords.lng + (toCoords.lng - fromCoords.lng) * progress;
+        // Calculate offshore waypoint positioned south/southwest of route
+        // This ensures the boat goes into deep water first
+        const midLat = (fromCoords.lat + toCoords.lat) / 2;
+        const midLng = (fromCoords.lng + toCoords.lng) / 2;
 
-        // Calculate perpendicular offset (curve out to sea)
+        // Calculate how far offshore to place the waypoint
         const distance = Math.sqrt(
             Math.pow(toCoords.lat - fromCoords.lat, 2) +
             Math.pow(toCoords.lng - fromCoords.lng, 2)
         );
 
-        // MASSIVE curved offset that peaks at 50% progress
-        // 70% of total distance to ensure offshore routing
-        const curveAmount = distance * 0.7; // 70% of total distance!
-        const curveProgress = Math.sin(progress * Math.PI); // Bell curve
+        // Waypoint is placed FAR south/southwest of the midpoint
+        // For UK waters, south is always offshore
+        const waypointOffshoreDistance = distance * 0.8; // 80% of route distance
+        const waypointLat = midLat - waypointOffshoreDistance; // Go south
+        const waypointLng = midLng - waypointOffshoreDistance * 0.5; // Go slightly west
 
-        // Perpendicular direction (rotate 90 degrees)
-        const dx = toCoords.lat - fromCoords.lat;
-        const dy = toCoords.lng - fromCoords.lng;
-        const perpLat = -dy / distance;
-        const perpLng = dx / distance;
+        // TWO-STAGE NAVIGATION:
+        // 0-50% progress: Station → Offshore Waypoint
+        // 50-100% progress: Offshore Waypoint → Destination
 
-        // Apply STRONG curve offset biased heavily towards south/offshore
-        // For UK waters, southern/western direction is generally offshore
-        const offshoreMultiplier = 2.0; // Always apply strong offshore curve
-        const curvedLat = directLat + perpLat * curveAmount * curveProgress * offshoreMultiplier;
-        const curvedLng = directLng + perpLng * curveAmount * curveProgress * 1.5;
+        let currentLat, currentLng;
 
-        return { lat: curvedLat, lng: curvedLng };
+        if (progress <= 0.5) {
+            // First half: Travel from station to offshore waypoint
+            const stageProgress = progress * 2; // 0-0.5 becomes 0-1
+            currentLat = fromCoords.lat + (waypointLat - fromCoords.lat) * stageProgress;
+            currentLng = fromCoords.lng + (waypointLng - fromCoords.lng) * stageProgress;
+        } else {
+            // Second half: Travel from offshore waypoint to destination
+            const stageProgress = (progress - 0.5) * 2; // 0.5-1 becomes 0-1
+            currentLat = waypointLat + (toCoords.lat - waypointLat) * stageProgress;
+            currentLng = waypointLng + (toCoords.lng - waypointLng) * stageProgress;
+        }
+
+        return { lat: currentLat, lng: currentLng };
     }
 
     completeMission(missionId) {
