@@ -531,8 +531,9 @@ class RNLIGame {
                 this.renderMap();
             });
 
-            // Update map every 2 seconds
-            setInterval(() => this.renderMap(), 2000);
+            // Update map periodically for new missions
+            // (Active unit movement handled by animateUnit function)
+            setInterval(() => this.renderMap(), 5000);
 
         } catch (error) {
             console.error('Error initializing map:', error);
@@ -600,11 +601,32 @@ class RNLIGame {
 
     generateCoastalLocation(stationCoords) {
         // Generate a mission location near the player's station
+        // IMPORTANT: Bias towards offshore to ensure water spawning
         // Distance: 1 to 10 nautical miles from station (0.016 to 0.16 degrees)
-        // Increased minimum distance to ensure spawning in water, not on shore
 
-        const angle = Math.random() * Math.PI * 2; // Random direction
-        const minDistance = 0.016; // ~1 nautical mile (ensures water spawning)
+        // Determine offshore direction based on latitude/longitude
+        // For UK: Generally south and west are offshore
+        let offshoreAngle;
+
+        if (stationCoords.lat > 54) {
+            // Northern Scotland/England - offshore is generally west/north
+            offshoreAngle = Math.PI; // West
+        } else if (stationCoords.lng < -4) {
+            // West coast Wales/Scotland - offshore is generally west/southwest
+            offshoreAngle = Math.PI * 1.25; // Southwest
+        } else if (stationCoords.lat > 51 && stationCoords.lng > -2) {
+            // Bristol Channel area - offshore is generally south
+            offshoreAngle = Math.PI * 1.5; // South
+        } else {
+            // South coast England - offshore is generally south
+            offshoreAngle = Math.PI * 1.5; // South
+        }
+
+        // Add random variation (±90 degrees) to offshore direction
+        const angleVariation = (Math.random() - 0.5) * Math.PI; // ±90 degrees
+        const angle = offshoreAngle + angleVariation;
+
+        const minDistance = 0.02; // ~1.25 nautical miles (further from shore)
         const maxDistance = 0.16;  // ~10 nautical miles
         const distance = Math.random() * (maxDistance - minDistance) + minDistance;
 
@@ -724,7 +746,7 @@ class RNLIGame {
     animateUnit(unit, duration) {
         const startTime = Date.now();
         const interval = setInterval(() => {
-            if (unit.status !== 'dispatched') {
+            if (unit.status !== 'dispatched' && unit.status !== 'returning') {
                 clearInterval(interval);
                 return;
             }
@@ -735,7 +757,42 @@ class RNLIGame {
             if (unit.progress >= 1) {
                 clearInterval(interval);
             }
-        }, 100);
+
+            // Update map more frequently for smoother animation
+            this.renderMap();
+        }, 50); // Update every 50ms for smoother animation
+    }
+
+    calculateWaterPath(fromCoords, toCoords, progress) {
+        // Calculate a curved path that stays in water
+        // Add an arc that bends slightly offshore to avoid land
+
+        // Direct path
+        const directLat = fromCoords.lat + (toCoords.lat - fromCoords.lat) * progress;
+        const directLng = fromCoords.lng + (toCoords.lng - fromCoords.lng) * progress;
+
+        // Calculate perpendicular offset (curve out to sea)
+        const distance = Math.sqrt(
+            Math.pow(toCoords.lat - fromCoords.lat, 2) +
+            Math.pow(toCoords.lng - fromCoords.lng, 2)
+        );
+
+        // Add a curved offset that peaks at 50% progress
+        // This creates an arc path instead of straight line
+        const curveAmount = distance * 0.15; // 15% of total distance
+        const curveProgress = Math.sin(progress * Math.PI); // Bell curve
+
+        // Perpendicular direction (rotate 90 degrees)
+        const dx = toCoords.lat - fromCoords.lat;
+        const dy = toCoords.lng - fromCoords.lng;
+        const perpLat = -dy / distance;
+        const perpLng = dx / distance;
+
+        // Apply curve offset (bias towards offshore/south)
+        const curvedLat = directLat + perpLat * curveAmount * curveProgress;
+        const curvedLng = directLng + perpLng * curveAmount * curveProgress * 0.5;
+
+        return { lat: curvedLat, lng: curvedLng };
     }
 
     completeMission(missionId) {
@@ -765,16 +822,21 @@ class RNLIGame {
             const unit = this.fleet.find(u => u.id === unitId);
             if (unit) {
                 unit.status = 'returning';
-                unit.currentMission = null;
+                unit.returnFrom = { lat: mission.coordinates.lat, lng: mission.coordinates.lng }; // Store return location
                 unit.progress = 0;
 
-                // Return to station after 10-20 seconds
+                // Animate return journey
+                const returnTime = Math.random() * 10000 + 10000; // 10-20 seconds
+                this.animateUnit(unit, returnTime);
+
+                // Arrive back at station
                 setTimeout(() => {
                     unit.status = 'available';
+                    unit.returnFrom = null;
                     this.logActivity(`${unit.name} returned to station`);
                     this.updateFleetScreen();
                     this.renderMap();
-                }, Math.random() * 10000 + 10000);
+                }, returnTime);
             }
         });
 
@@ -1066,20 +1128,21 @@ class RNLIGame {
             }
         });
 
-        // Render units on mission with progress indicators
+        // Render units on mission with progress indicators (dispatched and returning)
         this.fleet.forEach(unit => {
+            // Handle dispatched units (going to mission)
             if (unit.status === 'dispatched' && unit.currentMission !== null) {
                 const mission = this.missions.find(m => m.id === unit.currentMission);
                 const station = this.stations.find(s => s.id === unit.stationId);
 
                 if (mission && station) {
-                    const lat = station.coordinates.lat + (mission.coordinates.lat - station.coordinates.lat) * unit.progress;
-                    const lng = station.coordinates.lng + (mission.coordinates.lng - station.coordinates.lng) * unit.progress;
+                    // Use curved path that avoids land
+                    const position = this.calculateWaterPath(station.coordinates, mission.coordinates, unit.progress);
 
                     const progressPercent = Math.round(unit.progress * 100);
 
                     if (this.unitMarkers[unit.id]) {
-                        this.unitMarkers[unit.id].setLatLng([lat, lng]);
+                        this.unitMarkers[unit.id].setLatLng([position.lat, position.lng]);
                         // Update progress in popup
                         const popupContent = `
                             <strong>${unit.name}</strong><br>
@@ -1093,7 +1156,7 @@ class RNLIGame {
                             className: 'custom-marker lifeboat-marker-custom',
                             html: `
                                 <div style="text-align: center;">
-                                    <div style="width: 36px; height: 36px; background: #3498db; border: 4px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); margin: 0 auto;">
+                                    <div style="width: 36px; height: 36px; background: #3498db; border: 4px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); margin: 0 auto; transition: all 0.05s linear;">
                                         🚤
                                     </div>
                                     <div style="background: #3498db; color: white; font-weight: bold; font-size: 9px; padding: 2px 5px; border-radius: 3px; border: 2px solid white; margin-top: 4px; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">
@@ -1105,7 +1168,7 @@ class RNLIGame {
                             iconAnchor: [30, 30]
                         });
 
-                        const marker = L.marker([lat, lng], { icon: icon }).addTo(this.map);
+                        const marker = L.marker([position.lat, position.lng], { icon: icon }).addTo(this.map);
                         marker.bindPopup(`
                             <strong>${unit.name}</strong><br>
                             ${unit.type}<br>
@@ -1115,7 +1178,57 @@ class RNLIGame {
                         this.unitMarkers[unit.id] = marker;
                     }
                 }
-            } else {
+            }
+            // Handle returning units (going back to station)
+            else if (unit.status === 'returning' && unit.returnFrom) {
+                const station = this.stations.find(s => s.id === unit.stationId);
+
+                if (station) {
+                    // Use curved path for return journey (reverse direction)
+                    const position = this.calculateWaterPath(unit.returnFrom, station.coordinates, unit.progress);
+
+                    const progressPercent = Math.round(unit.progress * 100);
+
+                    if (this.unitMarkers[unit.id]) {
+                        this.unitMarkers[unit.id].setLatLng([position.lat, position.lng]);
+                        // Update progress in popup
+                        const popupContent = `
+                            <strong>${unit.name}</strong><br>
+                            ${unit.type}<br>
+                            <strong>Returning:</strong> ${progressPercent}%<br>
+                            <strong>To:</strong> ${station.name}
+                        `;
+                        this.unitMarkers[unit.id].setPopupContent(popupContent);
+                    } else {
+                        const icon = L.divIcon({
+                            className: 'custom-marker lifeboat-marker-custom',
+                            html: `
+                                <div style="text-align: center;">
+                                    <div style="width: 36px; height: 36px; background: #27ae60; border: 4px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); margin: 0 auto; transition: all 0.05s linear;">
+                                        🚤
+                                    </div>
+                                    <div style="background: #27ae60; color: white; font-weight: bold; font-size: 9px; padding: 2px 5px; border-radius: 3px; border: 2px solid white; margin-top: 4px; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">
+                                        Return ${progressPercent}%
+                                    </div>
+                                </div>
+                            `,
+                            iconSize: [60, 60],
+                            iconAnchor: [30, 30]
+                        });
+
+                        const marker = L.marker([position.lat, position.lng], { icon: icon }).addTo(this.map);
+                        marker.bindPopup(`
+                            <strong>${unit.name}</strong><br>
+                            ${unit.type}<br>
+                            <strong>Returning:</strong> ${progressPercent}%<br>
+                            <strong>To:</strong> ${station.name}
+                        `);
+                        this.unitMarkers[unit.id] = marker;
+                    }
+                }
+            }
+            // Remove marker for units that are available or in maintenance
+            else {
                 if (this.unitMarkers[unit.id]) {
                     this.map.removeLayer(this.unitMarkers[unit.id]);
                     delete this.unitMarkers[unit.id];
