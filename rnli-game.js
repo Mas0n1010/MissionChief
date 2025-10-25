@@ -612,8 +612,18 @@ class RNLIGame {
 
     generateCoastalLocation(stationCoords) {
         // Generate a mission location near the player's station
-        // CRITICAL: Spawn EXTREMELY FAR offshore to ABSOLUTELY GUARANTEE blue water ONLY
-        // Distance: 50 to 100 nautical miles from station - DEEP OCEAN ONLY (NO LAND POSSIBLE)
+        // CRITICAL: Distance scales with fleet capabilities (D-Class = closer, Shannon = farther)
+
+        // Calculate maximum range of current fleet
+        const unitTemplates = this.getUnitTemplates();
+        let maxFleetRange = 15; // Default to D-Class range
+
+        if (this.fleet.length > 0) {
+            maxFleetRange = Math.max(...this.fleet.map(unit => {
+                const template = unitTemplates[unit.type];
+                return template ? template.range : 15;
+            }));
+        }
 
         // Determine offshore direction based on latitude/longitude
         // For UK: Generally south and west are offshore
@@ -633,14 +643,19 @@ class RNLIGame {
             offshoreAngle = Math.PI * 1.5; // South (towards English Channel/Atlantic)
         }
 
-        // Add MINIMAL random variation (±3 degrees ONLY) to stay strictly offshore
-        const angleVariation = (Math.random() - 0.5) * Math.PI * 0.033; // ±3 degrees
+        // Add small random variation to create variety
+        const angleVariation = (Math.random() - 0.5) * Math.PI * 0.1; // ±18 degrees
         const angle = offshoreAngle + angleVariation;
 
-        // EXTREME OFFSHORE DISTANCE - 50 to 100nm ABSOLUTELY GUARANTEES blue ocean water only
-        // This is FAR out to sea where land is impossible
-        const minDistance = 0.80; // ~50 nautical miles
-        const maxDistance = 1.60; // ~100 nautical miles
+        // SCALE DISTANCE BASED ON FLEET RANGE
+        // Spawn missions at 50-80% of max fleet range to keep them challenging but achievable
+        // Minimum 8nm to guarantee blue water, maximum 100nm for realism
+        const minDistanceNM = Math.max(8, maxFleetRange * 0.5);
+        const maxDistanceNM = Math.min(100, maxFleetRange * 0.8);
+
+        // Convert to degrees (approximately 1 degree = 60nm)
+        const minDistance = minDistanceNM / 60;
+        const maxDistance = maxDistanceNM / 60;
         const distance = Math.random() * (maxDistance - minDistance) + minDistance;
 
         // Calculate coordinates
@@ -666,14 +681,24 @@ class RNLIGame {
         let locationType = '';
         let locationName = '';
 
-        if (distanceNM < 70) {
-            // 50-70nm - Far offshore waters
-            const features = ['Far Offshore Waters', 'Open Ocean', 'Deep Sea'];
+        if (distanceNM < 12) {
+            // Close offshore - inshore waters (8-12nm)
+            const features = ['Inshore Waters', 'Coastal Waters', 'Near Offshore'];
+            locationType = features[Math.floor(Math.random() * features.length)];
+            locationName = `${distanceNM}nm ${direction} - ${locationType}`;
+        } else if (distanceNM < 25) {
+            // Medium range - offshore waters (12-25nm)
+            const features = ['Offshore Waters', 'Open Water', 'Sea Area'];
+            locationType = features[Math.floor(Math.random() * features.length)];
+            locationName = `${distanceNM}nm ${direction} - ${locationType}`;
+        } else if (distanceNM < 50) {
+            // Far offshore (25-50nm)
+            const features = ['Far Offshore', 'Open Sea', 'Deep Water'];
             locationType = features[Math.floor(Math.random() * features.length)];
             locationName = `${distanceNM}nm ${direction} - ${locationType}`;
         } else {
-            // 70-100nm - Extreme offshore in deep ocean
-            const features = ['Deep Atlantic', 'Open Ocean', 'Far Offshore', 'Deep Water'];
+            // Extreme offshore - deep ocean (50-100nm)
+            const features = ['Deep Atlantic', 'Open Ocean', 'Distant Offshore'];
             locationType = features[Math.floor(Math.random() * features.length)];
             locationName = `${distanceNM}nm ${direction} - ${locationType}`;
         }
