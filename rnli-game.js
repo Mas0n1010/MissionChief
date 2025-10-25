@@ -1471,12 +1471,32 @@ function showScreen(screenName) {
 
 // Mission detail modal
 function showMissionDetail(missionId) {
+    console.log('showMissionDetail called with ID:', missionId);
+
+    if (!game || !game.missions) {
+        console.error('Game not initialized!');
+        alert('Game not ready yet. Please wait for the game to load.');
+        return;
+    }
+
     const mission = game.missions.find(m => m.id === missionId);
-    if (!mission) return;
+    if (!mission) {
+        console.error('Mission not found:', missionId);
+        alert('Mission not found!');
+        return;
+    }
+
+    console.log('Mission found:', mission);
 
     const modal = document.getElementById('mission-detail-modal');
     const title = document.getElementById('mission-detail-title');
     const content = document.getElementById('mission-detail-content');
+
+    if (!modal || !title || !content) {
+        console.error('Modal elements not found!');
+        alert('Modal error - please refresh the page.');
+        return;
+    }
 
     title.textContent = mission.title;
 
@@ -1566,6 +1586,10 @@ function showMissionDetail(missionId) {
     content.innerHTML = html;
     modal.style.display = 'block';
     modal.classList.add('active');
+
+    console.log('Modal displayed. Available units:', availableUnits.length);
+    console.log('Mission status:', mission.status);
+    console.log('HTML content generated successfully');
 }
 
 function toggleCrewSelection(unitId) {

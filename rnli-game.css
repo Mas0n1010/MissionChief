@@ -396,6 +396,11 @@ body {
     display: block;
 }
 
+.modal-overlay.active .modal-panel {
+    display: flex;
+    flex-direction: column;
+}
+
 /* Modal Panels */
 .modal-panel {
     display: none;
