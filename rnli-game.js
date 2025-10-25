@@ -544,54 +544,66 @@ class RNLIGame {
     }
 
     generateCoastalLocation(stationCoords) {
-        // Coastal locations around UK south coast
-        const coastalAreas = [
-            // Poole area
-            { name: 'Off Poole Harbour', lat: 50.700, lng: -1.975, type: 'water' },
-            { name: 'Near Brownsea Island', lat: 50.692, lng: -1.966, type: 'water' },
-            { name: 'Sandbanks Beach', lat: 50.686, lng: -1.946, type: 'beach' },
-            { name: 'Poole Bay', lat: 50.678, lng: -1.925, type: 'water' },
+        // Generate a mission location near the player's station
+        // Distance: 0.5 to 10 nautical miles from station (0.008 to 0.16 degrees)
 
-            // Bournemouth/Swanage area
-            { name: 'Bournemouth Pier', lat: 50.714, lng: -1.876, type: 'beach' },
-            { name: 'Studland Bay', lat: 50.648, lng: -1.955, type: 'bay' },
-            { name: 'Swanage Bay', lat: 50.603, lng: -1.955, type: 'bay' },
-            { name: 'Old Harry Rocks', lat: 50.642, lng: -1.922, type: 'rocks' },
-            { name: 'Durlston Head', lat: 50.595, lng: -1.958, type: 'cliffs' },
+        const angle = Math.random() * Math.PI * 2; // Random direction
+        const minDistance = 0.008; // ~0.5 nautical miles
+        const maxDistance = 0.16;  // ~10 nautical miles
+        const distance = Math.random() * (maxDistance - minDistance) + minDistance;
 
-            // Christchurch/Weymouth area
-            { name: 'Christchurch Bay', lat: 50.722, lng: -1.765, type: 'bay' },
-            { name: 'Mudeford Quay', lat: 50.718, lng: -1.748, type: 'water' },
-            { name: 'Weymouth Bay', lat: 50.602, lng: -2.453, type: 'bay' },
-            { name: 'Portland Bill', lat: 50.513, lng: -2.456, type: 'water' },
+        // Calculate coordinates
+        const lat = stationCoords.lat + Math.cos(angle) * distance;
+        const lng = stationCoords.lng + Math.sin(angle) * distance;
 
-            // Isle of Wight
-            { name: 'The Needles', lat: 50.663, lng: -1.587, type: 'rocks' },
-            { name: 'Yarmouth Roads', lat: 50.706, lng: -1.500, type: 'water' },
-            { name: 'Cowes Harbour', lat: 50.762, lng: -1.300, type: 'water' }
-        ];
+        // Generate location description based on distance and direction
+        const distanceNM = Math.round((distance / 0.016) * 10) / 10; // Convert to nautical miles
 
-        // Filter to locations within reasonable range (0.2 degrees ~= 14 miles)
-        const nearby = coastalAreas.filter(area => {
-            const dist = Math.sqrt(
-                Math.pow(area.lat - stationCoords.lat, 2) +
-                Math.pow(area.lng - stationCoords.lng, 2)
-            );
-            return dist < 0.25; // Within about 17 miles
-        });
+        // Determine compass direction
+        const degrees = (angle * 180 / Math.PI + 360) % 360;
+        let direction = '';
+        if (degrees < 22.5 || degrees >= 337.5) direction = 'North';
+        else if (degrees < 67.5) direction = 'Northeast';
+        else if (degrees < 112.5) direction = 'East';
+        else if (degrees < 157.5) direction = 'Southeast';
+        else if (degrees < 202.5) direction = 'South';
+        else if (degrees < 247.5) direction = 'Southwest';
+        else if (degrees < 292.5) direction = 'West';
+        else direction = 'Northwest';
 
-        // If no nearby locations, use any coastal location
-        const available = nearby.length > 0 ? nearby : coastalAreas;
+        // Generate realistic location names based on distance
+        let locationType = '';
+        let locationName = '';
 
-        // Pick a random coastal location
-        const chosen = available[Math.floor(Math.random() * available.length)];
+        if (distanceNM < 1) {
+            // Very close - specific features
+            const nearFeatures = ['Near Station', 'Harbor Entrance', 'Beach Area', 'Coastal Waters'];
+            locationType = nearFeatures[Math.floor(Math.random() * nearFeatures.length)];
+            locationName = `${locationType} (${distanceNM}nm ${direction})`;
+        } else if (distanceNM < 3) {
+            // Close - bays and coastal areas
+            const closeFeatures = ['Coastal Waters', 'Bay Area', 'Near Shore', 'Inshore Waters'];
+            locationType = closeFeatures[Math.floor(Math.random() * closeFeatures.length)];
+            locationName = `${distanceNM}nm ${direction} - ${locationType}`;
+        } else if (distanceNM < 6) {
+            // Medium - offshore
+            const mediumFeatures = ['Offshore Waters', 'Open Water', 'Coastal Zone', 'Sea Area'];
+            locationType = mediumFeatures[Math.floor(Math.random() * mediumFeatures.length)];
+            locationName = `${distanceNM}nm ${direction} - ${locationType}`;
+        } else {
+            // Far - distant offshore
+            const farFeatures = ['Distant Offshore', 'Open Sea', 'Offshore Zone', 'Deep Water'];
+            locationType = farFeatures[Math.floor(Math.random() * farFeatures.length)];
+            locationName = `${distanceNM}nm ${direction} - ${locationType}`;
+        }
 
-        // Add small random offset for variety (0.005 degrees ~= 350m)
         return {
-            name: chosen.name,
-            lat: chosen.lat + (Math.random() - 0.5) * 0.01,
-            lng: chosen.lng + (Math.random() - 0.5) * 0.01,
-            type: chosen.type
+            name: locationName,
+            lat: lat,
+            lng: lng,
+            type: 'water',
+            distance: distanceNM,
+            direction: direction
         };
     }
 
