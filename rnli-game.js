@@ -547,12 +547,17 @@ class RNLIGame {
         // Generate first mission after 10 seconds
         setTimeout(() => this.generateMission(), 10000);
 
-        // Generate missions every 45-90 seconds
+        // Generate missions periodically - frequency scales with fleet size
         setInterval(() => {
-            if (this.missions.length < 8) {
+            // Maximum missions = number of units + 2 (so you have some choice)
+            // Minimum of 2 missions so there's always something to do
+            const maxMissions = Math.max(2, this.fleet.length + 2);
+
+            // Only generate if under the limit
+            if (this.missions.length < maxMissions) {
                 this.generateMission();
             }
-        }, Math.random() * 45000 + 45000);
+        }, 45000); // Check every 45 seconds
     }
 
     generateMission() {
@@ -564,6 +569,12 @@ class RNLIGame {
         });
 
         if (availableTypes.length === 0) return;
+
+        // Check if we should generate more missions based on fleet size
+        const maxMissions = Math.max(2, this.fleet.length + 2);
+        if (this.missions.length >= maxMissions) {
+            return; // Already at capacity for current fleet size
+        }
 
         const [type, template] = availableTypes[Math.floor(Math.random() * availableTypes.length)];
 
@@ -593,7 +604,7 @@ class RNLIGame {
         };
 
         this.missions.push(mission);
-        this.logActivity(`New emergency: ${mission.title} - ${mission.location}`);
+        this.logActivity(`New emergency: ${mission.title} - ${mission.location} [${this.missions.length}/${maxMissions}]`);
         this.addMessage('New Emergency', `${mission.title} at ${mission.location}`, 'urgent');
         this.updateMissionsList();
         this.renderMap();
@@ -1008,8 +1019,10 @@ class RNLIGame {
         };
 
         this.fleet.push(unit);
-        this.logActivity(`Purchased ${template.name} for ${station.name}`);
-        this.addMessage('Unit Purchased', `${unit.name} added to fleet at ${station.name}`, 'success');
+
+        const maxMissions = Math.max(2, this.fleet.length + 2);
+        this.logActivity(`Purchased ${template.name} for ${station.name} - Max missions now: ${maxMissions}`);
+        this.addMessage('Unit Purchased', `${unit.name} added to fleet at ${station.name}. More emergencies will now appear!`, 'success');
 
         this.updateAllUI();
         this.renderMap();
