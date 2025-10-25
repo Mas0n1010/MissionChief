@@ -615,14 +615,22 @@ class RNLIGame {
         // CRITICAL: Distance scales with fleet capabilities (D-Class = closer, Shannon = farther)
 
         // Calculate maximum range of current fleet
-        const unitTemplates = this.getUnitTemplates();
         let maxFleetRange = 15; // Default to D-Class range
 
-        if (this.fleet.length > 0) {
-            maxFleetRange = Math.max(...this.fleet.map(unit => {
-                const template = unitTemplates[unit.type];
-                return template ? template.range : 15;
-            }));
+        try {
+            if (this.fleet && this.fleet.length > 0) {
+                const unitTemplates = this.getUnitTemplates();
+                const ranges = this.fleet.map(unit => {
+                    const template = unitTemplates[unit.type];
+                    return template && template.range ? template.range : 15;
+                });
+                if (ranges.length > 0) {
+                    maxFleetRange = Math.max(...ranges);
+                }
+            }
+        } catch (error) {
+            console.error('Error calculating fleet range:', error);
+            maxFleetRange = 15; // Fallback to D-Class range
         }
 
         // Determine offshore direction based on latitude/longitude
@@ -663,7 +671,7 @@ class RNLIGame {
         const lng = stationCoords.lng + Math.sin(angle) * distance;
 
         // Calculate actual distance in nautical miles
-        const distanceNM = Math.round((distance / 0.016) * 10) / 10;
+        const distanceNM = Math.round((distance * 60) * 10) / 10;
 
         // Determine compass direction
         const degrees = (angle * 180 / Math.PI + 360) % 360;
