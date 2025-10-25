@@ -601,34 +601,34 @@ class RNLIGame {
 
     generateCoastalLocation(stationCoords) {
         // Generate a mission location near the player's station
-        // CRITICAL: Spawn far enough offshore to ensure water-only
-        // Distance: 3 to 10 nautical miles from station
+        // CRITICAL: Spawn FAR offshore to GUARANTEE water-only
+        // Distance: 6 to 12 nautical miles from station - all in deep water
 
         // Determine offshore direction based on latitude/longitude
         // For UK: Generally south and west are offshore
         let offshoreAngle;
 
         if (stationCoords.lat > 54) {
-            // Northern Scotland/England - offshore is generally west/north
-            offshoreAngle = Math.PI; // West
+            // Northern Scotland/England - offshore is generally west/northwest
+            offshoreAngle = Math.PI * 1.25; // West-Northwest
         } else if (stationCoords.lng < -4) {
-            // West coast Wales/Scotland - offshore is generally west/southwest
-            offshoreAngle = Math.PI * 1.25; // Southwest
+            // West coast Wales/Scotland - offshore is generally west
+            offshoreAngle = Math.PI; // West
         } else if (stationCoords.lat > 51 && stationCoords.lng > -2) {
-            // Bristol Channel area - offshore is generally south
-            offshoreAngle = Math.PI * 1.5; // South
+            // Bristol Channel area - offshore is generally south/southwest
+            offshoreAngle = Math.PI * 1.35; // South-Southwest
         } else {
             // South coast England - offshore is generally south
             offshoreAngle = Math.PI * 1.5; // South
         }
 
-        // Add random variation (±60 degrees) to offshore direction
-        const angleVariation = (Math.random() - 0.5) * Math.PI * 0.66; // ±60 degrees
+        // Add SMALL random variation (±30 degrees) to keep offshore
+        const angleVariation = (Math.random() - 0.5) * Math.PI * 0.33; // ±30 degrees
         const angle = offshoreAngle + angleVariation;
 
-        // Increased minimum distance to 3nm to guarantee deep water
-        const minDistance = 0.05; // ~3 nautical miles
-        const maxDistance = 0.16; // ~10 nautical miles
+        // MUCH FURTHER offshore - 6 to 12nm guarantees deep water
+        const minDistance = 0.1; // ~6 nautical miles
+        const maxDistance = 0.2; // ~12 nautical miles
         const distance = Math.random() * (maxDistance - minDistance) + minDistance;
 
         // Calculate coordinates
@@ -654,19 +654,14 @@ class RNLIGame {
         let locationType = '';
         let locationName = '';
 
-        if (distanceNM < 4) {
-            // Close - inshore waters
-            const features = ['Inshore Waters', 'Coastal Waters', 'Coastal Zone'];
-            locationType = features[Math.floor(Math.random() * features.length)];
-            locationName = `${distanceNM}nm ${direction} - ${locationType}`;
-        } else if (distanceNM < 7) {
-            // Medium - offshore
+        if (distanceNM < 8) {
+            // Medium range - offshore waters
             const features = ['Offshore Waters', 'Open Water', 'Sea Area'];
             locationType = features[Math.floor(Math.random() * features.length)];
             locationName = `${distanceNM}nm ${direction} - ${locationType}`;
         } else {
-            // Far - distant offshore
-            const features = ['Distant Offshore', 'Open Sea', 'Deep Water'];
+            // Far offshore - distant waters
+            const features = ['Distant Offshore', 'Open Sea', 'Deep Water', 'Far Offshore'];
             locationType = features[Math.floor(Math.random() * features.length)];
             locationName = `${distanceNM}nm ${direction} - ${locationType}`;
         }
@@ -716,9 +711,9 @@ class RNLIGame {
                 const speedKnots = unitTemplate.speed;
                 const travelTimeHours = distanceNM / speedKnots;
 
-                // Time compression: 60x (1 real minute = 1 game hour)
-                // Minimum 10 seconds for very close missions
-                const travelTimeMs = Math.max(10000, travelTimeHours * 60 * 1000);
+                // Time compression: 5x (1 real minute = 5 game minutes, so 12 real minutes = 1 game hour)
+                // This makes travel much more realistic and slower
+                const travelTimeMs = Math.max(30000, travelTimeHours * 3600 * 1000 / 5);
 
                 unit.status = 'dispatched';
                 unit.currentMission = missionId;
@@ -741,8 +736,11 @@ class RNLIGame {
                     return c ? c.name : '';
                 }).filter(n => n).join(', ');
 
-                const etaMinutes = Math.round(travelTimeMs / 60000);
-                this.logActivity(`${unit.name} dispatched - ${distanceNM.toFixed(1)}nm at ${speedKnots}kts - ETA ${etaMinutes} min`);
+                // Format ETA nicely
+                const etaMinutes = Math.floor(travelTimeMs / 60000);
+                const etaSeconds = Math.round((travelTimeMs % 60000) / 1000);
+                const etaString = etaMinutes > 0 ? `${etaMinutes}m ${etaSeconds}s` : `${etaSeconds}s`;
+                this.logActivity(`${unit.name} dispatched - ${distanceNM.toFixed(1)}nm at ${speedKnots}kts - ETA ${etaString}`);
 
                 // Animate unit progress
                 this.animateUnit(unit, travelTimeMs);
@@ -788,8 +786,8 @@ class RNLIGame {
     }
 
     calculateWaterPath(fromCoords, toCoords, progress) {
-        // Calculate a curved path that stays in water
-        // Creates a strong offshore arc to avoid coastal land
+        // Calculate a highly curved path that DEFINITELY stays in water
+        // Creates MASSIVE offshore arc to completely avoid any coastal land
 
         // Direct path
         const directLat = fromCoords.lat + (toCoords.lat - fromCoords.lat) * progress;
@@ -801,9 +799,9 @@ class RNLIGame {
             Math.pow(toCoords.lng - fromCoords.lng, 2)
         );
 
-        // Add a strong curved offset that peaks at 50% progress
-        // Increased curve for better land avoidance
-        const curveAmount = distance * 0.35; // 35% of total distance (was 15%)
+        // MASSIVE curved offset that peaks at 50% progress
+        // 70% of total distance to ensure offshore routing
+        const curveAmount = distance * 0.7; // 70% of total distance!
         const curveProgress = Math.sin(progress * Math.PI); // Bell curve
 
         // Perpendicular direction (rotate 90 degrees)
@@ -812,11 +810,11 @@ class RNLIGame {
         const perpLat = -dy / distance;
         const perpLng = dx / distance;
 
-        // Apply curve offset strongly biased towards south/offshore
-        // For UK waters, southern direction is generally offshore
-        const offshoreMultiplier = fromCoords.lat > toCoords.lat ? 1.5 : 1.0; // Stronger curve when going south
+        // Apply STRONG curve offset biased heavily towards south/offshore
+        // For UK waters, southern/western direction is generally offshore
+        const offshoreMultiplier = 2.0; // Always apply strong offshore curve
         const curvedLat = directLat + perpLat * curveAmount * curveProgress * offshoreMultiplier;
-        const curvedLng = directLng + perpLng * curveAmount * curveProgress * 0.8; // Increased from 0.5
+        const curvedLng = directLng + perpLng * curveAmount * curveProgress * 1.5;
 
         return { lat: curvedLat, lng: curvedLng };
     }
@@ -854,8 +852,11 @@ class RNLIGame {
                 // Use same travel time as outbound journey (stored in unit)
                 const returnTime = unit.travelTime || 20000;
 
-                const etaMinutes = Math.round(returnTime / 60000);
-                this.logActivity(`${unit.name} returning to station - ETA ${etaMinutes} min`);
+                // Format ETA nicely
+                const etaMinutes = Math.floor(returnTime / 60000);
+                const etaSeconds = Math.round((returnTime % 60000) / 1000);
+                const etaString = etaMinutes > 0 ? `${etaMinutes}m ${etaSeconds}s` : `${etaSeconds}s`;
+                this.logActivity(`${unit.name} returning to station - ETA ${etaString}`);
 
                 // Animate return journey
                 this.animateUnit(unit, returnTime);
