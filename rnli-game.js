@@ -415,14 +415,69 @@ class RNLIGame {
 
     getLocationName(lat, lng) {
         // Generate a location name based on coordinates
-        // Simple implementation - in reality would use reverse geocoding
+        // Expanded UK coastal areas including Wales, Scotland, etc.
         const areas = [
-            { name: 'Poole Harbour', lat: 50.712, lng: -1.987 },
+            // South Coast England
+            { name: 'Poole', lat: 50.712, lng: -1.987 },
             { name: 'Bournemouth', lat: 50.719, lng: -1.880 },
             { name: 'Swanage', lat: 50.610, lng: -1.959 },
             { name: 'Weymouth', lat: 50.608, lng: -2.457 },
             { name: 'Christchurch', lat: 50.735, lng: -1.778 },
-            { name: 'Studland Bay', lat: 50.642, lng: -1.954 }
+            { name: 'Brighton', lat: 50.822, lng: -0.137 },
+            { name: 'Portsmouth', lat: 50.800, lng: -1.091 },
+            { name: 'Southampton', lat: 50.909, lng: -1.404 },
+            { name: 'Isle of Wight', lat: 50.693, lng: -1.304 },
+            { name: 'Portland', lat: 50.550, lng: -2.441 },
+
+            // Wales - Bristol Channel
+            { name: 'Penarth', lat: 51.434, lng: -3.176 },
+            { name: 'Barry', lat: 51.400, lng: -3.266 },
+            { name: 'Cardiff', lat: 51.481, lng: -3.179 },
+            { name: 'Swansea', lat: 51.621, lng: -3.943 },
+            { name: 'Mumbles', lat: 51.567, lng: -3.977 },
+            { name: 'Tenby', lat: 51.672, lng: -4.703 },
+            { name: 'Pembroke', lat: 51.674, lng: -4.918 },
+
+            // Wales - West Coast
+            { name: 'Fishguard', lat: 51.999, lng: -4.983 },
+            { name: 'Aberystwyth', lat: 52.415, lng: -4.082 },
+            { name: 'Barmouth', lat: 52.723, lng: -4.047 },
+            { name: 'Pwllheli', lat: 52.885, lng: -4.416 },
+            { name: 'Holyhead', lat: 53.309, lng: -4.633 },
+
+            // North Wales
+            { name: 'Llandudno', lat: 53.323, lng: -3.827 },
+            { name: 'Rhyl', lat: 53.319, lng: -3.492 },
+
+            // Northwest England
+            { name: 'Blackpool', lat: 53.817, lng: -3.054 },
+            { name: 'Fleetwood', lat: 53.925, lng: -3.013 },
+            { name: 'Morecambe', lat: 54.069, lng: -2.867 },
+
+            // Scotland - West Coast
+            { name: 'Stranraer', lat: 54.903, lng: -5.025 },
+            { name: 'Oban', lat: 56.415, lng: -5.472 },
+            { name: 'Mallaig', lat: 57.005, lng: -5.829 },
+
+            // Scotland - East Coast
+            { name: 'Aberdeen', lat: 57.144, lng: -2.099 },
+            { name: 'Dundee', lat: 56.462, lng: -2.971 },
+            { name: 'Edinburgh', lat: 55.953, lng: -3.189 },
+            { name: 'Berwick', lat: 55.768, lng: -2.006 },
+
+            // Northeast England
+            { name: 'Newcastle', lat: 54.978, lng: -1.618 },
+            { name: 'Sunderland', lat: 54.906, lng: -1.383 },
+            { name: 'Hartlepool', lat: 54.693, lng: -1.213 },
+            { name: 'Whitby', lat: 54.487, lng: -0.614 },
+            { name: 'Scarborough', lat: 54.283, lng: -0.399 },
+
+            // East Coast England
+            { name: 'Bridlington', lat: 54.083, lng: -0.191 },
+            { name: 'Great Yarmouth', lat: 52.608, lng: 1.730 },
+            { name: 'Lowestoft', lat: 52.477, lng: 1.751 },
+            { name: 'Felixstowe', lat: 51.964, lng: 1.352 },
+            { name: 'Harwich', lat: 51.947, lng: 1.287 }
         ];
 
         // Find closest area
@@ -545,10 +600,11 @@ class RNLIGame {
 
     generateCoastalLocation(stationCoords) {
         // Generate a mission location near the player's station
-        // Distance: 0.5 to 10 nautical miles from station (0.008 to 0.16 degrees)
+        // Distance: 1 to 10 nautical miles from station (0.016 to 0.16 degrees)
+        // Increased minimum distance to ensure spawning in water, not on shore
 
         const angle = Math.random() * Math.PI * 2; // Random direction
-        const minDistance = 0.008; // ~0.5 nautical miles
+        const minDistance = 0.016; // ~1 nautical mile (ensures water spawning)
         const maxDistance = 0.16;  // ~10 nautical miles
         const distance = Math.random() * (maxDistance - minDistance) + minDistance;
 
@@ -575,19 +631,19 @@ class RNLIGame {
         let locationType = '';
         let locationName = '';
 
-        if (distanceNM < 1) {
-            // Very close - specific features
-            const nearFeatures = ['Near Station', 'Harbor Entrance', 'Beach Area', 'Coastal Waters'];
+        if (distanceNM < 2) {
+            // Very close - inshore waters
+            const nearFeatures = ['Inshore Waters', 'Coastal Waters', 'Near Shore', 'Close to Coast'];
             locationType = nearFeatures[Math.floor(Math.random() * nearFeatures.length)];
-            locationName = `${locationType} (${distanceNM}nm ${direction})`;
-        } else if (distanceNM < 3) {
-            // Close - bays and coastal areas
-            const closeFeatures = ['Coastal Waters', 'Bay Area', 'Near Shore', 'Inshore Waters'];
+            locationName = `${distanceNM}nm ${direction} - ${locationType}`;
+        } else if (distanceNM < 4) {
+            // Close - coastal zone
+            const closeFeatures = ['Coastal Zone', 'Mid-Channel', 'Bay Waters', 'Coastal Waters'];
             locationType = closeFeatures[Math.floor(Math.random() * closeFeatures.length)];
             locationName = `${distanceNM}nm ${direction} - ${locationType}`;
-        } else if (distanceNM < 6) {
+        } else if (distanceNM < 7) {
             // Medium - offshore
-            const mediumFeatures = ['Offshore Waters', 'Open Water', 'Coastal Zone', 'Sea Area'];
+            const mediumFeatures = ['Offshore Waters', 'Open Water', 'Sea Area', 'Offshore Zone'];
             locationType = mediumFeatures[Math.floor(Math.random() * mediumFeatures.length)];
             locationName = `${distanceNM}nm ${direction} - ${locationType}`;
         } else {
@@ -950,7 +1006,7 @@ class RNLIGame {
                     <strong>Available Units:</strong> ${units.length}
                 `);
                 marker.on('click', () => {
-                    this.showStationDetail(station.id);
+                    showStationDetail(station.id);
                     this.map.setView([station.coordinates.lat, station.coordinates.lng], 13);
                 });
                 this.stationMarkers[station.id] = marker;
@@ -995,7 +1051,7 @@ class RNLIGame {
                     <strong>Required:</strong> ${mission.requiredUnits.join(', ')}
                 `);
                 marker.on('click', () => {
-                    this.showMissionDetail(mission.id);
+                    showMissionDetail(mission.id);
                     this.map.setView([mission.coordinates.lat, mission.coordinates.lng], 13);
                 });
                 this.missionMarkers[mission.id] = marker;
