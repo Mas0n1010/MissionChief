@@ -545,10 +545,17 @@ class RNLIGame {
 
     startMissionGenerator() {
         // Generate first mission after 10 seconds
-        setTimeout(() => this.generateMission(), 10000);
+        setTimeout(() => {
+            this.generateMission();
+            this.scheduleMissionGenerator();
+        }, 10000);
+    }
 
-        // Generate missions periodically - frequency scales with fleet size
-        setInterval(() => {
+    scheduleMissionGenerator() {
+        // Schedule next mission generation in 1-2 minutes
+        const delay = 60000 + Math.random() * 60000; // Random interval between 60-120 seconds (1-2 minutes)
+
+        setTimeout(() => {
             // Maximum missions = number of units + 2 (so you have some choice)
             // Minimum of 2 missions so there's always something to do
             const maxMissions = Math.max(2, this.fleet.length + 2);
@@ -557,7 +564,10 @@ class RNLIGame {
             if (this.missions.length < maxMissions) {
                 this.generateMission();
             }
-        }, 45000); // Check every 45 seconds
+
+            // Schedule the next one
+            this.scheduleMissionGenerator();
+        }, delay);
     }
 
     generateMission() {
@@ -634,32 +644,32 @@ class RNLIGame {
         }
 
         // Determine offshore direction based on latitude/longitude
-        // For UK: Generally south and west are offshore
+        // CRITICAL: ALWAYS aim towards deep water (south/southwest for UK)
         let offshoreAngle;
 
         if (stationCoords.lat > 54) {
-            // Northern Scotland/England - offshore is generally west/northwest
-            offshoreAngle = Math.PI * 1.25; // West-Northwest (towards Atlantic)
+            // Northern Scotland/England - aim southwest into Atlantic
+            offshoreAngle = Math.PI * 1.25; // Southwest-West (towards Atlantic)
         } else if (stationCoords.lng < -4) {
-            // West coast Wales/Scotland - offshore is generally west
-            offshoreAngle = Math.PI; // West (towards Atlantic)
+            // West coast Wales/Scotland - aim southwest into Atlantic
+            offshoreAngle = Math.PI * 1.35; // Southwest (towards Atlantic)
         } else if (stationCoords.lat > 51 && stationCoords.lng > -2) {
-            // Bristol Channel area - offshore is generally south/southwest
-            offshoreAngle = Math.PI * 1.35; // South-Southwest (towards Celtic Sea)
+            // Bristol Channel area - aim SOUTH into Celtic Sea/Channel
+            offshoreAngle = Math.PI * 1.5; // South (towards deep water)
         } else {
-            // South coast England - offshore is generally south
-            offshoreAngle = Math.PI * 1.5; // South (towards English Channel/Atlantic)
+            // South coast England - aim SOUTH into English Channel
+            offshoreAngle = Math.PI * 1.5; // South (towards open ocean)
         }
 
-        // Add small random variation to create variety
-        const angleVariation = (Math.random() - 0.5) * Math.PI * 0.1; // ±18 degrees
+        // Add VERY SMALL random variation to stay in deep water
+        const angleVariation = (Math.random() - 0.5) * Math.PI * 0.056; // ±5 degrees only
         const angle = offshoreAngle + angleVariation;
 
         // SCALE DISTANCE BASED ON FLEET RANGE
-        // Spawn missions at 50-80% of max fleet range to keep them challenging but achievable
-        // Minimum 8nm to guarantee blue water, maximum 100nm for realism
-        const minDistanceNM = Math.max(8, maxFleetRange * 0.5);
-        const maxDistanceNM = Math.min(100, maxFleetRange * 0.8);
+        // Spawn missions at 60-85% of max fleet range to keep them challenging but achievable
+        // Minimum 10nm to guarantee deep blue water, maximum 100nm for realism
+        const minDistanceNM = Math.max(10, maxFleetRange * 0.6);
+        const maxDistanceNM = Math.min(100, Math.max(minDistanceNM + 3, maxFleetRange * 0.85));
 
         // Convert to degrees (approximately 1 degree = 60nm)
         const minDistance = minDistanceNM / 60;
@@ -689,24 +699,24 @@ class RNLIGame {
         let locationType = '';
         let locationName = '';
 
-        if (distanceNM < 12) {
-            // Close offshore - inshore waters (8-12nm)
-            const features = ['Inshore Waters', 'Coastal Waters', 'Near Offshore'];
+        if (distanceNM < 15) {
+            // Close offshore - inshore waters (10-15nm)
+            const features = ['Offshore Waters', 'Coastal Sea', 'Open Water'];
             locationType = features[Math.floor(Math.random() * features.length)];
             locationName = `${distanceNM}nm ${direction} - ${locationType}`;
-        } else if (distanceNM < 25) {
-            // Medium range - offshore waters (12-25nm)
-            const features = ['Offshore Waters', 'Open Water', 'Sea Area'];
+        } else if (distanceNM < 30) {
+            // Medium range - offshore waters (15-30nm)
+            const features = ['Far Offshore', 'Open Sea', 'Sea Area'];
             locationType = features[Math.floor(Math.random() * features.length)];
             locationName = `${distanceNM}nm ${direction} - ${locationType}`;
-        } else if (distanceNM < 50) {
-            // Far offshore (25-50nm)
-            const features = ['Far Offshore', 'Open Sea', 'Deep Water'];
+        } else if (distanceNM < 60) {
+            // Far offshore (30-60nm)
+            const features = ['Deep Water', 'Open Ocean', 'Distant Waters'];
             locationType = features[Math.floor(Math.random() * features.length)];
             locationName = `${distanceNM}nm ${direction} - ${locationType}`;
         } else {
-            // Extreme offshore - deep ocean (50-100nm)
-            const features = ['Deep Atlantic', 'Open Ocean', 'Distant Offshore'];
+            // Extreme offshore - deep ocean (60-100nm)
+            const features = ['Deep Atlantic', 'Far Ocean', 'Distant Offshore'];
             locationType = features[Math.floor(Math.random() * features.length)];
             locationName = `${distanceNM}nm ${direction} - ${locationType}`;
         }
