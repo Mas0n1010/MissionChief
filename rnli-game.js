@@ -797,43 +797,102 @@ class RNLIGame {
     }
 
     calculateWaterPath(fromCoords, toCoords, progress) {
-        // TRUE OFFSHORE NAVIGATION using waypoint system
-        // Boats go to an offshore waypoint first, then to destination
-        // This GUARANTEES staying in water by routing far offshore
+        // HARBOUR-AWARE NAVIGATION SYSTEM
+        // For enclosed harbours: 3-stage navigation (Harbour Exit → Offshore → Destination)
+        // For open coast: 2-stage navigation (Offshore → Destination)
+
+        // Database of enclosed harbours with their exit waypoints
+        const harbours = [
+            // South Coast - enclosed harbours and channels
+            { name: 'Poole', lat: 50.712, lng: -1.987, exitLat: 50.660, exitLng: -1.915 }, // Poole Harbour entrance
+            { name: 'Portsmouth', lat: 50.800, lng: -1.091, exitLat: 50.785, exitLng: -1.095 }, // Portsmouth Harbour entrance
+            { name: 'Southampton', lat: 50.909, lng: -1.404, exitLat: 50.800, exitLng: -1.300 }, // Southampton Water exit
+
+            // Bristol Channel - mudflats and narrow channels
+            { name: 'Penarth', lat: 51.434, lng: -3.176, exitLat: 51.400, exitLng: -3.150 }, // Cardiff Roads
+            { name: 'Barry', lat: 51.400, lng: -3.266, exitLat: 51.380, exitLng: -3.200 }, // Barry Roads
+            { name: 'Cardiff', lat: 51.481, lng: -3.179, exitLat: 51.420, exitLng: -3.120 }, // Bristol Channel proper
+            { name: 'Swansea', lat: 51.621, lng: -3.943, exitLat: 51.580, exitLng: -3.900 }, // Swansea Bay exit
+
+            // Scotland - enclosed harbours and estuaries
+            { name: 'Aberdeen', lat: 57.144, lng: -2.099, exitLat: 57.135, exitLng: -2.050 }, // Aberdeen Harbour entrance
+            { name: 'Dundee', lat: 56.462, lng: -2.971, exitLat: 56.450, exitLng: -2.900 }, // Tay estuary
+            { name: 'Edinburgh', lat: 55.953, lng: -3.189, exitLat: 55.980, exitLng: -3.100 }, // Firth of Forth
+
+            // Northeast - river mouths and harbours
+            { name: 'Newcastle', lat: 54.978, lng: -1.618, exitLat: 54.995, exitLng: -1.420 }, // Tyne estuary
+            { name: 'Sunderland', lat: 54.906, lng: -1.383, exitLat: 54.915, exitLng: -1.350 }, // Sunderland harbour
+            { name: 'Hartlepool', lat: 54.693, lng: -1.213, exitLat: 54.690, exitLng: -1.180 } // Hartlepool harbour
+        ];
+
+        // Check if we're starting from a harbour
+        let harbourExit = null;
+        for (const harbour of harbours) {
+            const dist = Math.sqrt(
+                Math.pow(fromCoords.lat - harbour.lat, 2) +
+                Math.pow(fromCoords.lng - harbour.lng, 2)
+            );
+            // If within ~0.01 degrees (~1km), use this harbour's exit
+            if (dist < 0.01) {
+                harbourExit = { lat: harbour.exitLat, lng: harbour.exitLng };
+                break;
+            }
+        }
 
         // Calculate offshore waypoint positioned south/southwest of route
-        // This ensures the boat goes into deep water first
         const midLat = (fromCoords.lat + toCoords.lat) / 2;
         const midLng = (fromCoords.lng + toCoords.lng) / 2;
 
-        // Calculate how far offshore to place the waypoint
         const distance = Math.sqrt(
             Math.pow(toCoords.lat - fromCoords.lat, 2) +
             Math.pow(toCoords.lng - fromCoords.lng, 2)
         );
 
         // Waypoint is placed FAR south/southwest of the midpoint
-        // For UK waters, south is always offshore
-        const waypointOffshoreDistance = distance * 0.8; // 80% of route distance
+        const waypointOffshoreDistance = distance * 0.8;
         const waypointLat = midLat - waypointOffshoreDistance; // Go south
         const waypointLng = midLng - waypointOffshoreDistance * 0.5; // Go slightly west
 
-        // TWO-STAGE NAVIGATION:
-        // 0-50% progress: Station → Offshore Waypoint
-        // 50-100% progress: Offshore Waypoint → Destination
-
         let currentLat, currentLng;
 
-        if (progress <= 0.5) {
-            // First half: Travel from station to offshore waypoint
-            const stageProgress = progress * 2; // 0-0.5 becomes 0-1
-            currentLat = fromCoords.lat + (waypointLat - fromCoords.lat) * stageProgress;
-            currentLng = fromCoords.lng + (waypointLng - fromCoords.lng) * stageProgress;
+        if (harbourExit) {
+            // THREE-STAGE NAVIGATION for harbour stations:
+            // 0-33% progress: Station → Harbour Exit
+            // 33-66% progress: Harbour Exit → Offshore Waypoint
+            // 66-100% progress: Offshore Waypoint → Destination
+
+            if (progress <= 0.33) {
+                // Stage 1: Navigate to harbour exit
+                const stageProgress = progress * 3; // 0-0.33 becomes 0-1
+                currentLat = fromCoords.lat + (harbourExit.lat - fromCoords.lat) * stageProgress;
+                currentLng = fromCoords.lng + (harbourExit.lng - fromCoords.lng) * stageProgress;
+            } else if (progress <= 0.66) {
+                // Stage 2: Harbour exit to offshore waypoint
+                const stageProgress = (progress - 0.33) * 3; // 0.33-0.66 becomes 0-1
+                currentLat = harbourExit.lat + (waypointLat - harbourExit.lat) * stageProgress;
+                currentLng = harbourExit.lng + (waypointLng - harbourExit.lng) * stageProgress;
+            } else {
+                // Stage 3: Offshore waypoint to destination
+                const stageProgress = (progress - 0.66) * 3; // 0.66-1 becomes 0-1
+                currentLat = waypointLat + (toCoords.lat - waypointLat) * stageProgress;
+                currentLng = waypointLng + (toCoords.lng - waypointLng) * stageProgress;
+            }
         } else {
-            // Second half: Travel from offshore waypoint to destination
-            const stageProgress = (progress - 0.5) * 2; // 0.5-1 becomes 0-1
-            currentLat = waypointLat + (toCoords.lat - waypointLat) * stageProgress;
-            currentLng = waypointLng + (toCoords.lng - waypointLng) * stageProgress;
+            // TWO-STAGE NAVIGATION for open coast stations:
+            // 0-50% progress: Station → Offshore Waypoint
+            // 50-100% progress: Offshore Waypoint → Destination
+
+            if (progress <= 0.5) {
+                // First half: Travel from station to offshore waypoint
+                const stageProgress = progress * 2; // 0-0.5 becomes 0-1
+                currentLat = fromCoords.lat + (waypointLat - fromCoords.lat) * stageProgress;
+                currentLng = fromCoords.lng + (waypointLng - fromCoords.lng) * stageProgress;
+            } else {
+                // Second half: Travel from offshore waypoint to destination
+                const stageProgress = (progress - 0.5) * 2; // 0.5-1 becomes 0-1
+                currentLat = waypointLat + (toCoords.lat - waypointLat) * stageProgress;
+                currentLng = waypointLng + (toCoords.lng - waypointLng) * stageProgress;
+            }
         }
 
         return { lat: currentLat, lng: currentLng };
