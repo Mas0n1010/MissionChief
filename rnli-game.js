@@ -612,8 +612,8 @@ class RNLIGame {
 
     generateCoastalLocation(stationCoords) {
         // Generate a mission location near the player's station
-        // CRITICAL: Spawn VERY FAR offshore to GUARANTEE blue water only (never green/land)
-        // Distance: 15 to 25 nautical miles from station - DEEP OCEAN ONLY
+        // CRITICAL: Spawn EXTREMELY FAR offshore to ABSOLUTELY GUARANTEE blue water ONLY
+        // Distance: 50 to 100 nautical miles from station - DEEP OCEAN ONLY (NO LAND POSSIBLE)
 
         // Determine offshore direction based on latitude/longitude
         // For UK: Generally south and west are offshore
@@ -621,25 +621,26 @@ class RNLIGame {
 
         if (stationCoords.lat > 54) {
             // Northern Scotland/England - offshore is generally west/northwest
-            offshoreAngle = Math.PI * 1.25; // West-Northwest
+            offshoreAngle = Math.PI * 1.25; // West-Northwest (towards Atlantic)
         } else if (stationCoords.lng < -4) {
             // West coast Wales/Scotland - offshore is generally west
-            offshoreAngle = Math.PI; // West
+            offshoreAngle = Math.PI; // West (towards Atlantic)
         } else if (stationCoords.lat > 51 && stationCoords.lng > -2) {
             // Bristol Channel area - offshore is generally south/southwest
-            offshoreAngle = Math.PI * 1.35; // South-Southwest
+            offshoreAngle = Math.PI * 1.35; // South-Southwest (towards Celtic Sea)
         } else {
             // South coast England - offshore is generally south
-            offshoreAngle = Math.PI * 1.5; // South
+            offshoreAngle = Math.PI * 1.5; // South (towards English Channel/Atlantic)
         }
 
-        // Add VERY SMALL random variation (±15 degrees) to stay in deep water
-        const angleVariation = (Math.random() - 0.5) * Math.PI * 0.167; // ±15 degrees
+        // Add MINIMAL random variation (±3 degrees ONLY) to stay strictly offshore
+        const angleVariation = (Math.random() - 0.5) * Math.PI * 0.033; // ±3 degrees
         const angle = offshoreAngle + angleVariation;
 
-        // FAR OFFSHORE - 15 to 25nm GUARANTEES deep blue water only
-        const minDistance = 0.24; // ~15 nautical miles
-        const maxDistance = 0.40; // ~25 nautical miles
+        // EXTREME OFFSHORE DISTANCE - 50 to 100nm ABSOLUTELY GUARANTEES blue ocean water only
+        // This is FAR out to sea where land is impossible
+        const minDistance = 0.80; // ~50 nautical miles
+        const maxDistance = 1.60; // ~100 nautical miles
         const distance = Math.random() * (maxDistance - minDistance) + minDistance;
 
         // Calculate coordinates
@@ -665,14 +666,14 @@ class RNLIGame {
         let locationType = '';
         let locationName = '';
 
-        if (distanceNM < 20) {
-            // Medium range - offshore waters (15-20nm)
-            const features = ['Offshore Waters', 'Open Water', 'Sea Area'];
+        if (distanceNM < 70) {
+            // 50-70nm - Far offshore waters
+            const features = ['Far Offshore Waters', 'Open Ocean', 'Deep Sea'];
             locationType = features[Math.floor(Math.random() * features.length)];
             locationName = `${distanceNM}nm ${direction} - ${locationType}`;
         } else {
-            // Far offshore - distant waters (20-25nm)
-            const features = ['Distant Offshore', 'Open Sea', 'Deep Water', 'Far Offshore'];
+            // 70-100nm - Extreme offshore in deep ocean
+            const features = ['Deep Atlantic', 'Open Ocean', 'Far Offshore', 'Deep Water'];
             locationType = features[Math.floor(Math.random() * features.length)];
             locationName = `${distanceNM}nm ${direction} - ${locationType}`;
         }
