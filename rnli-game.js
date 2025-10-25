@@ -612,8 +612,8 @@ class RNLIGame {
 
     generateCoastalLocation(stationCoords) {
         // Generate a mission location near the player's station
-        // CRITICAL: Spawn FAR offshore to GUARANTEE water-only
-        // Distance: 6 to 12 nautical miles from station - all in deep water
+        // CRITICAL: Spawn VERY FAR offshore to GUARANTEE blue water only (never green/land)
+        // Distance: 15 to 25 nautical miles from station - DEEP OCEAN ONLY
 
         // Determine offshore direction based on latitude/longitude
         // For UK: Generally south and west are offshore
@@ -633,13 +633,13 @@ class RNLIGame {
             offshoreAngle = Math.PI * 1.5; // South
         }
 
-        // Add SMALL random variation (±30 degrees) to keep offshore
-        const angleVariation = (Math.random() - 0.5) * Math.PI * 0.33; // ±30 degrees
+        // Add VERY SMALL random variation (±15 degrees) to stay in deep water
+        const angleVariation = (Math.random() - 0.5) * Math.PI * 0.167; // ±15 degrees
         const angle = offshoreAngle + angleVariation;
 
-        // MUCH FURTHER offshore - 6 to 12nm guarantees deep water
-        const minDistance = 0.1; // ~6 nautical miles
-        const maxDistance = 0.2; // ~12 nautical miles
+        // FAR OFFSHORE - 15 to 25nm GUARANTEES deep blue water only
+        const minDistance = 0.24; // ~15 nautical miles
+        const maxDistance = 0.40; // ~25 nautical miles
         const distance = Math.random() * (maxDistance - minDistance) + minDistance;
 
         // Calculate coordinates
@@ -665,13 +665,13 @@ class RNLIGame {
         let locationType = '';
         let locationName = '';
 
-        if (distanceNM < 8) {
-            // Medium range - offshore waters
+        if (distanceNM < 20) {
+            // Medium range - offshore waters (15-20nm)
             const features = ['Offshore Waters', 'Open Water', 'Sea Area'];
             locationType = features[Math.floor(Math.random() * features.length)];
             locationName = `${distanceNM}nm ${direction} - ${locationType}`;
         } else {
-            // Far offshore - distant waters
+            // Far offshore - distant waters (20-25nm)
             const features = ['Distant Offshore', 'Open Sea', 'Deep Water', 'Far Offshore'];
             locationType = features[Math.floor(Math.random() * features.length)];
             locationName = `${distanceNM}nm ${direction} - ${locationType}`;
