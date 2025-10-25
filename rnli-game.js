@@ -33,6 +33,8 @@ class RNLIGame {
         // Game state
         this.currentScreen = 'dispatch';
         this.activityLog = [];
+        this.placementMode = false;
+        this.gameStarted = false;
 
         this.init();
     }
@@ -40,20 +42,16 @@ class RNLIGame {
     init() {
         console.log('Initializing RNLI Mission Chief...');
 
-        // Create initial station
-        this.createInitialSetup();
-
-        // Initialize map
+        // Initialize map first
         this.initMap();
 
-        // Start mission generator
-        this.startMissionGenerator();
+        // Enable placement mode for first station
+        this.enablePlacementMode();
 
         // Update all UI
         this.updateAllUI();
 
-        this.logActivity('System initialized - Welcome to RNLI Mission Chief');
-        this.addMessage('Welcome', 'Welcome to UK Coastal Rescue Command. Your first lifeboat station is operational.', 'info');
+        this.logActivity('System initialized - Click on the map to place your first Lifeboat Station');
 
         console.log('Game initialized successfully!');
     }
@@ -111,6 +109,17 @@ class RNLIGame {
 
     getUnitTypes() {
         return {
+            'DClass': {
+                name: 'RNLI D Class Lifeboat',
+                description: 'Inflatable inshore lifeboat for close-to-shore rescue',
+                cost: 60000,
+                speed: 30,
+                capacity: 3,
+                requiredCrew: 2,
+                range: 15,
+                stationType: 'lifeboat',
+                requiredExtension: null // Starter unit, no extension required
+            },
             'ILB': {
                 name: 'RNLI Inshore Lifeboat',
                 description: 'Fast close-to-shore rescue boat',
@@ -230,30 +239,33 @@ class RNLIGame {
                 description: 'Swimmer struggling in current near beach',
                 reward: 2000,
                 urgency: 'high',
-                requiredUnits: ['BeachPatrol', 'RescueWatercraft'],
-                requiredCount: [1, 1],
+                requiredUnits: ['DClass', 'BeachPatrol', 'RescueWatercraft'],
+                requiredCount: [1, 1, 1],
                 requiredTraining: [],
-                unlockLevel: 0
+                unlockLevel: 0,
+                acceptableUnits: [['DClass', 'ILB', 'BeachPatrol', 'RescueWatercraft']] // Any of these
             },
             'cutoff_tide': {
                 title: 'Person cut off by tide at base of cliff',
                 description: 'Individual stranded at cliff base with rising tide',
                 reward: 4000,
                 urgency: 'high',
-                requiredUnits: ['ILB', 'CliffRescue'],
+                requiredUnits: ['DClass', 'CliffRescue'],
                 requiredCount: [1, 1],
                 requiredTraining: ['CliffAccess'],
-                unlockLevel: 1
+                unlockLevel: 1,
+                acceptableUnits: [['DClass', 'ILB'], ['CliffRescue']]
             },
             'capsized_kayak': {
                 title: 'Capsized kayak offshore',
                 description: 'Kayaker in water approximately 400m from shore',
                 reward: 3000,
                 urgency: 'high',
-                requiredUnits: ['ILB'],
+                requiredUnits: ['DClass'],
                 requiredCount: [1],
                 requiredTraining: [],
-                unlockLevel: 0
+                unlockLevel: 0,
+                acceptableUnits: [['DClass', 'ILB']]
             },
             'broken_down': {
                 title: 'Broken down motorboat drifting towards rocks',
@@ -300,28 +312,70 @@ class RNLIGame {
 
     // ==================== INITIALIZATION ====================
 
-    createInitialSetup() {
-        // Create initial lifeboat station
+    enablePlacementMode() {
+        this.placementMode = true;
+
+        // Show placement instruction
+        const mapElement = document.getElementById('game-map');
+        if (mapElement && this.map) {
+            // Add a placement overlay
+            const overlay = document.createElement('div');
+            overlay.id = 'placement-overlay';
+            overlay.style.cssText = `
+                position: absolute;
+                top: 10px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: #003d5c;
+                color: white;
+                padding: 15px 30px;
+                border-radius: 5px;
+                border: 3px solid #fbb034;
+                z-index: 1000;
+                font-weight: bold;
+                font-size: 16px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+                text-align: center;
+            `;
+            overlay.innerHTML = `
+                🏢 Click on the map to place your first Lifeboat Station<br>
+                <small style="font-weight: normal; font-size: 12px;">Choose a coastal location near the water</small>
+            `;
+            mapElement.parentElement.style.position = 'relative';
+            mapElement.parentElement.appendChild(overlay);
+
+            // Add click handler to map
+            this.map.on('click', (e) => {
+                if (this.placementMode) {
+                    this.placeFirstStation(e.latlng.lat, e.latlng.lng);
+                }
+            });
+        }
+    }
+
+    placeFirstStation(lat, lng) {
+        // Create the first lifeboat station at clicked location
         const station = {
             id: this.stationIdCounter++,
             type: 'lifeboat',
-            name: 'Poole Lifeboat Station',
-            location: 'Poole, Dorset',
-            coordinates: { lat: 50.712, lng: -1.987 },
-            extensions: ['ilb_slipway'],
+            name: 'Station 1 - Lifeboat',
+            location: this.getLocationName(lat, lng),
+            coordinates: { lat: lat, lng: lng },
+            extensions: [],
             level: 1
         };
         this.stations.push(station);
 
-        // Create initial ILB
+        // Create initial D Class lifeboat
         const unit = {
             id: this.unitIdCounter++,
-            type: 'ILB',
-            name: 'Poole ILB-1',
+            type: 'DClass',
+            name: 'D-Class-1',
             stationId: station.id,
-            status: 'available', // available, dispatched, returning, maintenance
+            status: 'available',
             currentMission: null,
-            progress: 0
+            progress: 0,
+            assignedCrew: []
         };
         this.fleet.push(unit);
 
@@ -337,6 +391,53 @@ class RNLIGame {
                 training: null
             });
         });
+
+        // Disable placement mode
+        this.placementMode = false;
+        this.gameStarted = true;
+
+        // Remove overlay
+        const overlay = document.getElementById('placement-overlay');
+        if (overlay) overlay.remove();
+
+        // Start mission generator
+        this.startMissionGenerator();
+
+        // Update UI and map
+        this.logActivity(`Lifeboat Station established at ${station.location}`);
+        this.addMessage('Station Built', `Your first lifeboat station is now operational with a D Class lifeboat and 4 crew members.`, 'success');
+        this.updateAllUI();
+        this.renderMap();
+
+        // Center map on new station
+        this.map.setView([lat, lng], 12);
+    }
+
+    getLocationName(lat, lng) {
+        // Generate a location name based on coordinates
+        // Simple implementation - in reality would use reverse geocoding
+        const areas = [
+            { name: 'Poole Harbour', lat: 50.712, lng: -1.987 },
+            { name: 'Bournemouth', lat: 50.719, lng: -1.880 },
+            { name: 'Swanage', lat: 50.610, lng: -1.959 },
+            { name: 'Weymouth', lat: 50.608, lng: -2.457 },
+            { name: 'Christchurch', lat: 50.735, lng: -1.778 },
+            { name: 'Studland Bay', lat: 50.642, lng: -1.954 }
+        ];
+
+        // Find closest area
+        let closest = areas[0];
+        let minDist = 999;
+
+        areas.forEach(area => {
+            const dist = Math.sqrt(Math.pow(lat - area.lat, 2) + Math.pow(lng - area.lng, 2));
+            if (dist < minDist) {
+                minDist = dist;
+                closest = area;
+            }
+        });
+
+        return closest.name;
     }
 
     initMap() {
@@ -410,20 +511,19 @@ class RNLIGame {
 
         const [type, template] = availableTypes[Math.floor(Math.random() * availableTypes.length)];
 
-        // Random location near a station
+        // Get coastal/water location near a station
         const station = this.stations[Math.floor(Math.random() * this.stations.length)];
-        const angle = Math.random() * Math.PI * 2;
-        const distance = (Math.random() * 0.3 + 0.1) * 0.5; // Degrees
+        const coastalCoords = this.generateCoastalLocation(station.coordinates);
 
         const mission = {
             id: this.missionIdCounter++,
             type: type,
             title: template.title,
             description: template.description,
-            location: this.generateLocationName(),
+            location: coastalCoords.name,
             coordinates: {
-                lat: station.coordinates.lat + Math.cos(angle) * distance,
-                lng: station.coordinates.lng + Math.sin(angle) * distance
+                lat: coastalCoords.lat,
+                lng: coastalCoords.lng
             },
             reward: template.reward,
             urgency: template.urgency,
@@ -431,6 +531,7 @@ class RNLIGame {
             requiredCount: template.requiredCount,
             requiredTraining: template.requiredTraining,
             dispatchedUnits: [],
+            assignedCrew: [],
             status: 'waiting', // waiting, enroute, onscene, completed
             startTime: Date.now()
         };
@@ -442,23 +543,66 @@ class RNLIGame {
         this.renderMap();
     }
 
-    generateLocationName() {
-        const locations = [
-            'Off Poole Harbour', 'Near Brownsea Island', 'Studland Bay', 'Sandbanks Peninsula',
-            'Swanage Bay', 'Durlston Head', 'Old Harry Rocks', 'Bournemouth Coast',
-            'Christchurch Bay', 'The Needles', 'Yarmouth Roads', 'Cowes Harbour'
+    generateCoastalLocation(stationCoords) {
+        // Coastal locations around UK south coast
+        const coastalAreas = [
+            // Poole area
+            { name: 'Off Poole Harbour', lat: 50.700, lng: -1.975, type: 'water' },
+            { name: 'Near Brownsea Island', lat: 50.692, lng: -1.966, type: 'water' },
+            { name: 'Sandbanks Beach', lat: 50.686, lng: -1.946, type: 'beach' },
+            { name: 'Poole Bay', lat: 50.678, lng: -1.925, type: 'water' },
+
+            // Bournemouth/Swanage area
+            { name: 'Bournemouth Pier', lat: 50.714, lng: -1.876, type: 'beach' },
+            { name: 'Studland Bay', lat: 50.648, lng: -1.955, type: 'bay' },
+            { name: 'Swanage Bay', lat: 50.603, lng: -1.955, type: 'bay' },
+            { name: 'Old Harry Rocks', lat: 50.642, lng: -1.922, type: 'rocks' },
+            { name: 'Durlston Head', lat: 50.595, lng: -1.958, type: 'cliffs' },
+
+            // Christchurch/Weymouth area
+            { name: 'Christchurch Bay', lat: 50.722, lng: -1.765, type: 'bay' },
+            { name: 'Mudeford Quay', lat: 50.718, lng: -1.748, type: 'water' },
+            { name: 'Weymouth Bay', lat: 50.602, lng: -2.453, type: 'bay' },
+            { name: 'Portland Bill', lat: 50.513, lng: -2.456, type: 'water' },
+
+            // Isle of Wight
+            { name: 'The Needles', lat: 50.663, lng: -1.587, type: 'rocks' },
+            { name: 'Yarmouth Roads', lat: 50.706, lng: -1.500, type: 'water' },
+            { name: 'Cowes Harbour', lat: 50.762, lng: -1.300, type: 'water' }
         ];
-        return locations[Math.floor(Math.random() * locations.length)];
+
+        // Filter to locations within reasonable range (0.2 degrees ~= 14 miles)
+        const nearby = coastalAreas.filter(area => {
+            const dist = Math.sqrt(
+                Math.pow(area.lat - stationCoords.lat, 2) +
+                Math.pow(area.lng - stationCoords.lng, 2)
+            );
+            return dist < 0.25; // Within about 17 miles
+        });
+
+        // If no nearby locations, use any coastal location
+        const available = nearby.length > 0 ? nearby : coastalAreas;
+
+        // Pick a random coastal location
+        const chosen = available[Math.floor(Math.random() * available.length)];
+
+        // Add small random offset for variety (0.005 degrees ~= 350m)
+        return {
+            name: chosen.name,
+            lat: chosen.lat + (Math.random() - 0.5) * 0.01,
+            lng: chosen.lng + (Math.random() - 0.5) * 0.01,
+            type: chosen.type
+        };
     }
 
-    dispatchToMission(missionId, unitIds) {
+    dispatchToMission(missionId, unitIds, crewAssignments = {}) {
         const mission = this.missions.find(m => m.id === missionId);
         if (!mission || mission.status !== 'waiting') return false;
 
         const units = unitIds.map(id => this.fleet.find(u => u.id === id)).filter(u => u);
         if (units.length === 0) return false;
 
-        // Dispatch units
+        // Dispatch units and assign crew
         units.forEach(unit => {
             if (unit.status === 'available') {
                 unit.status = 'dispatched';
@@ -466,7 +610,22 @@ class RNLIGame {
                 unit.progress = 0;
                 mission.dispatchedUnits.push(unit.id);
 
-                this.logActivity(`${unit.name} dispatched to ${mission.title}`);
+                // Assign crew to this unit
+                const assignedCrewIds = crewAssignments[unit.id] || [];
+                assignedCrewIds.forEach(crewId => {
+                    const crewMember = this.crew.find(c => c.id === crewId);
+                    if (crewMember) {
+                        crewMember.assignedUnit = unit.id;
+                        mission.assignedCrew.push(crewId);
+                    }
+                });
+
+                const crewNames = assignedCrewIds.map(id => {
+                    const c = this.crew.find(cr => cr.id === id);
+                    return c ? c.name : '';
+                }).filter(n => n).join(', ');
+
+                this.logActivity(`${unit.name} dispatched with crew: ${crewNames || 'No crew assigned'}`);
             }
         });
 
@@ -533,7 +692,7 @@ class RNLIGame {
         });
         if (this.incomeLog.length > 20) this.incomeLog.pop();
 
-        // Free up units
+        // Free up units and crew
         mission.dispatchedUnits.forEach(unitId => {
             const unit = this.fleet.find(u => u.id === unitId);
             if (unit) {
@@ -550,6 +709,16 @@ class RNLIGame {
                 }, Math.random() * 10000 + 10000);
             }
         });
+
+        // Release assigned crew
+        if (mission.assignedCrew && mission.assignedCrew.length > 0) {
+            mission.assignedCrew.forEach(crewId => {
+                const crewMember = this.crew.find(c => c.id === crewId);
+                if (crewMember) {
+                    crewMember.assignedUnit = null;
+                }
+            });
+        }
 
         // Remove mission
         this.missions.splice(missionIndex, 1);
@@ -1262,11 +1431,38 @@ function showMissionDetail(missionId) {
 
         availableUnits.forEach(unit => {
             const station = game.stations.find(s => s.id === unit.stationId);
+            const unitTypes = game.getUnitTypes();
+            const unitTemplate = unitTypes[unit.type];
+            const availableCrew = game.crew.filter(c => c.stationId === unit.stationId && !c.assignedUnit);
+
             html += `
-                <label style="display: block; margin: 10px 0; padding: 10px; background: #f8f9fa; border: 2px solid #bdc3c7; border-radius: 4px;">
-                    <input type="checkbox" value="${unit.id}" class="dispatch-checkbox">
-                    <strong>${unit.name}</strong> (${unit.type}) - ${station ? station.name : 'Unknown'}
-                </label>
+                <div style="margin: 15px 0; padding: 12px; background: #f8f9fa; border: 2px solid #bdc3c7; border-radius: 4px;">
+                    <label style="display: block; margin-bottom: 10px;">
+                        <input type="checkbox" value="${unit.id}" class="dispatch-checkbox" onchange="toggleCrewSelection(${unit.id})">
+                        <strong>${unit.name}</strong> (${unit.type}) - ${station ? station.name : 'Unknown'}
+                        <span style="color: #7f8c8d; font-size: 0.9em;"> - Requires ${unitTemplate.requiredCrew} crew</span>
+                    </label>
+                    <div id="crew-select-${unit.id}" style="display: none; margin-left: 25px; margin-top: 10px; padding: 10px; background: white; border: 1px solid #bdc3c7; border-radius: 3px;">
+                        <strong style="font-size: 0.9em;">Assign Crew:</strong><br>
+            `;
+
+            availableCrew.forEach(crewMember => {
+                html += `
+                    <label style="display: block; margin: 5px 0; font-size: 0.9em;">
+                        <input type="checkbox" class="crew-checkbox crew-for-${unit.id}" value="${crewMember.id}">
+                        ${crewMember.name}
+                        ${crewMember.qualifications.length > 0 ? `<span style="color: #27ae60;">(${crewMember.qualifications.join(', ')})</span>` : ''}
+                    </label>
+                `;
+            });
+
+            if (availableCrew.length === 0) {
+                html += '<p style="color: #e74c3c; font-size: 0.9em; margin: 5px 0;">No available crew at this station</p>';
+            }
+
+            html += `
+                    </div>
+                </div>
             `;
         });
 
@@ -1281,6 +1477,18 @@ function showMissionDetail(missionId) {
         `;
     } else if (mission.status !== 'waiting') {
         html += `<p><strong>Status:</strong> ${game.getMissionStatusBadge(mission)}</p>`;
+
+        // Show assigned crew for active missions
+        if (mission.assignedCrew && mission.assignedCrew.length > 0) {
+            html += '<div style="margin-top: 15px;"><strong>Assigned Crew:</strong><ul style="margin: 5px 0;">';
+            mission.assignedCrew.forEach(crewId => {
+                const crew = game.crew.find(c => c.id === crewId);
+                if (crew) {
+                    html += `<li>${crew.name}</li>`;
+                }
+            });
+            html += '</ul></div>';
+        }
     } else {
         html += '<p style="color: #e74c3c;"><strong>No available units to dispatch!</strong></p>';
     }
@@ -1290,6 +1498,15 @@ function showMissionDetail(missionId) {
     content.innerHTML = html;
     modal.style.display = 'block';
     modal.classList.add('active');
+}
+
+function toggleCrewSelection(unitId) {
+    const checkbox = document.querySelector(`.dispatch-checkbox[value="${unitId}"]`);
+    const crewDiv = document.getElementById(`crew-select-${unitId}`);
+
+    if (checkbox && crewDiv) {
+        crewDiv.style.display = checkbox.checked ? 'block' : 'none';
+    }
 }
 
 function closeMissionDetail() {
@@ -1307,7 +1524,14 @@ function dispatchSelectedUnits(missionId) {
         return;
     }
 
-    if (game.dispatchToMission(missionId, unitIds)) {
+    // Collect assigned crew for each unit
+    const crewAssignments = {};
+    unitIds.forEach(unitId => {
+        const crewCheckboxes = document.querySelectorAll(`.crew-for-${unitId}:checked`);
+        crewAssignments[unitId] = Array.from(crewCheckboxes).map(cb => parseInt(cb.value));
+    });
+
+    if (game.dispatchToMission(missionId, unitIds, crewAssignments)) {
         closeMissionDetail();
     }
 }
@@ -1334,7 +1558,27 @@ function alarmAndDispatch(missionId) {
         return;
     }
 
-    if (game.dispatchToMission(missionId, selectedUnits)) {
+    // Auto-assign crew to selected units
+    const unitTypes = game.getUnitTypes();
+    const crewAssignments = {};
+
+    selectedUnits.forEach(unitId => {
+        const unit = game.fleet.find(u => u.id === unitId);
+        if (unit) {
+            const unitTemplate = unitTypes[unit.type];
+            const requiredCrew = unitTemplate.requiredCrew;
+
+            // Get available crew at the same station
+            const availableCrew = game.crew.filter(c =>
+                c.stationId === unit.stationId && !c.assignedUnit
+            );
+
+            // Auto-assign the required number of crew
+            crewAssignments[unitId] = availableCrew.slice(0, requiredCrew).map(c => c.id);
+        }
+    });
+
+    if (game.dispatchToMission(missionId, selectedUnits, crewAssignments)) {
         closeMissionDetail();
     }
 }
