@@ -643,33 +643,17 @@ class RNLIGame {
             maxFleetRange = 15; // Fallback to D-Class range
         }
 
-        // Determine offshore direction based on latitude/longitude
-        // CRITICAL: ALWAYS aim towards deep water (south/southwest for UK)
-        let offshoreAngle;
+        // CRITICAL: ALWAYS spawn DIRECTLY SOUTH to guarantee ocean (no land possible)
+        // For all UK locations, SOUTH is guaranteed deep water
+        const offshoreAngle = Math.PI * 1.5; // ALWAYS South - no exceptions
 
-        if (stationCoords.lat > 54) {
-            // Northern Scotland/England - aim southwest into Atlantic
-            offshoreAngle = Math.PI * 1.25; // Southwest-West (towards Atlantic)
-        } else if (stationCoords.lng < -4) {
-            // West coast Wales/Scotland - aim southwest into Atlantic
-            offshoreAngle = Math.PI * 1.35; // Southwest (towards Atlantic)
-        } else if (stationCoords.lat > 51 && stationCoords.lng > -2) {
-            // Bristol Channel area - aim SOUTH into Celtic Sea/Channel
-            offshoreAngle = Math.PI * 1.5; // South (towards deep water)
-        } else {
-            // South coast England - aim SOUTH into English Channel
-            offshoreAngle = Math.PI * 1.5; // South (towards open ocean)
-        }
+        // NO random variation - ALWAYS directly south for absolute water guarantee
+        const angle = offshoreAngle;
 
-        // Add VERY SMALL random variation to stay in deep water
-        const angleVariation = (Math.random() - 0.5) * Math.PI * 0.056; // ±5 degrees only
-        const angle = offshoreAngle + angleVariation;
-
-        // SCALE DISTANCE BASED ON FLEET RANGE
-        // Spawn missions at 60-85% of max fleet range to keep them challenging but achievable
-        // Minimum 10nm to guarantee deep blue water, maximum 100nm for realism
-        const minDistanceNM = Math.max(10, maxFleetRange * 0.6);
-        const maxDistanceNM = Math.min(100, Math.max(minDistanceNM + 3, maxFleetRange * 0.85));
+        // EXTREME OFFSHORE DISTANCE - minimum 30nm to ABSOLUTELY guarantee deep blue water
+        // For D-Class: 30-35nm, for Shannon: 60-85nm
+        const minDistanceNM = Math.max(30, maxFleetRange * 0.6);
+        const maxDistanceNM = Math.min(100, Math.max(minDistanceNM + 5, maxFleetRange * 0.85));
 
         // Convert to degrees (approximately 1 degree = 60nm)
         const minDistance = minDistanceNM / 60;
@@ -699,24 +683,19 @@ class RNLIGame {
         let locationType = '';
         let locationName = '';
 
-        if (distanceNM < 15) {
-            // Close offshore - inshore waters (10-15nm)
-            const features = ['Offshore Waters', 'Coastal Sea', 'Open Water'];
+        if (distanceNM < 40) {
+            // 30-40nm - Far offshore waters
+            const features = ['Far Offshore Waters', 'Open Ocean', 'Deep Water'];
             locationType = features[Math.floor(Math.random() * features.length)];
             locationName = `${distanceNM}nm ${direction} - ${locationType}`;
-        } else if (distanceNM < 30) {
-            // Medium range - offshore waters (15-30nm)
-            const features = ['Far Offshore', 'Open Sea', 'Sea Area'];
-            locationType = features[Math.floor(Math.random() * features.length)];
-            locationName = `${distanceNM}nm ${direction} - ${locationType}`;
-        } else if (distanceNM < 60) {
-            // Far offshore (30-60nm)
-            const features = ['Deep Water', 'Open Ocean', 'Distant Waters'];
+        } else if (distanceNM < 65) {
+            // 40-65nm - Deep ocean
+            const features = ['Deep Ocean', 'Far Offshore', 'Open Atlantic'];
             locationType = features[Math.floor(Math.random() * features.length)];
             locationName = `${distanceNM}nm ${direction} - ${locationType}`;
         } else {
-            // Extreme offshore - deep ocean (60-100nm)
-            const features = ['Deep Atlantic', 'Far Ocean', 'Distant Offshore'];
+            // 65-100nm - Extreme offshore
+            const features = ['Deep Atlantic', 'Distant Ocean', 'Far Offshore'];
             locationType = features[Math.floor(Math.random() * features.length)];
             locationName = `${distanceNM}nm ${direction} - ${locationType}`;
         }
@@ -883,7 +862,8 @@ class RNLIGame {
             }
         }
 
-        // Calculate offshore waypoint positioned south/southwest of route
+        // Calculate offshore waypoint positioned EXTREMELY FAR SOUTH
+        // This ensures boats NEVER cross land by routing through deep ocean
         const midLat = (fromCoords.lat + toCoords.lat) / 2;
         const midLng = (fromCoords.lng + toCoords.lng) / 2;
 
@@ -892,10 +872,10 @@ class RNLIGame {
             Math.pow(toCoords.lng - fromCoords.lng, 2)
         );
 
-        // Waypoint is placed FAR south/southwest of the midpoint
-        const waypointOffshoreDistance = distance * 0.8;
-        const waypointLat = midLat - waypointOffshoreDistance; // Go south
-        const waypointLng = midLng - waypointOffshoreDistance * 0.5; // Go slightly west
+        // Waypoint is placed EXTREMELY FAR SOUTH - 5x route distance to guarantee ocean
+        const waypointOffshoreDistance = distance * 5.0; // Massive offshore distance
+        const waypointLat = midLat - waypointOffshoreDistance; // Go FAR south into deep ocean
+        const waypointLng = midLng; // Stay on same longitude (no east/west drift)
 
         let currentLat, currentLng;
 
