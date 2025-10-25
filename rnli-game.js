@@ -113,7 +113,7 @@ class RNLIGame {
                 name: 'RNLI D Class Lifeboat',
                 description: 'Inflatable inshore lifeboat for close-to-shore rescue',
                 cost: 60000,
-                speed: 30,
+                speed: 25, // knots - Real RNLI D Class max speed
                 capacity: 3,
                 requiredCrew: 2,
                 range: 15,
@@ -121,23 +121,23 @@ class RNLIGame {
                 requiredExtension: null // Starter unit, no extension required
             },
             'ILB': {
-                name: 'RNLI Inshore Lifeboat',
-                description: 'Fast close-to-shore rescue boat',
+                name: 'RNLI B Class Atlantic 85',
+                description: 'Fast rigid inflatable inshore lifeboat',
                 cost: 80000,
-                speed: 35,
+                speed: 35, // knots - Real RNLI Atlantic 85 max speed
                 capacity: 4,
-                requiredCrew: 2,
+                requiredCrew: 3,
                 range: 20,
                 stationType: 'lifeboat',
                 requiredExtension: 'ilb_slipway'
             },
             'ALB': {
-                name: 'RNLI All-Weather Lifeboat',
-                description: 'Offshore heavy weather lifeboat with towing capability',
+                name: 'RNLI Shannon Class ALB',
+                description: 'All-weather lifeboat with towing capability',
                 cost: 250000,
-                speed: 25,
+                speed: 25, // knots - Real RNLI Shannon class max speed
                 capacity: 10,
-                requiredCrew: 4,
+                requiredCrew: 6,
                 range: 100,
                 stationType: 'lifeboat',
                 requiredExtension: 'alb_berth'
@@ -146,7 +146,7 @@ class RNLIGame {
                 name: 'RNLI Rescue Watercraft',
                 description: 'Jet ski for surf zone rescue',
                 cost: 30000,
-                speed: 40,
+                speed: 50, // knots - Real PWC speed
                 capacity: 2,
                 requiredCrew: 1,
                 range: 15,
@@ -157,7 +157,7 @@ class RNLIGame {
                 name: 'Beach Lifeguard Patrol',
                 description: 'Shore-based first response and casualty care',
                 cost: 15000,
-                speed: 5,
+                speed: 5, // knots - Walking/running speed
                 capacity: 3,
                 requiredCrew: 2,
                 range: 5,
@@ -168,7 +168,7 @@ class RNLIGame {
                 name: 'Shore Rescue Vehicle',
                 description: '4x4/quad for beach equipment transport',
                 cost: 40000,
-                speed: 20,
+                speed: 30, // knots - Road speed equivalent
                 capacity: 4,
                 requiredCrew: 1,
                 range: 30,
@@ -179,7 +179,7 @@ class RNLIGame {
                 name: 'Coastguard Cliff Rescue Team',
                 description: 'Rope access and cliff recovery team',
                 cost: 60000,
-                speed: 15,
+                speed: 10, // knots - Road travel speed
                 capacity: 4,
                 requiredCrew: 3,
                 range: 25,
@@ -190,7 +190,7 @@ class RNLIGame {
                 name: 'Coastguard Search & Rescue Team',
                 description: 'Land-based search and missing person team',
                 cost: 50000,
-                speed: 15,
+                speed: 15, // knots - Road travel speed
                 capacity: 6,
                 requiredCrew: 4,
                 range: 30,
@@ -201,7 +201,7 @@ class RNLIGame {
                 name: 'Mobile Command Unit',
                 description: 'On-scene incident command and coordination',
                 cost: 80000,
-                speed: 25,
+                speed: 25, // knots - Road speed
                 capacity: 4,
                 requiredCrew: 2,
                 range: 50,
@@ -212,7 +212,7 @@ class RNLIGame {
                 name: 'SAR Helicopter',
                 description: 'Long-range search, winch rescue, and medevac',
                 cost: 400000,
-                speed: 150,
+                speed: 140, // knots - Real SAR helicopter cruise speed
                 capacity: 6,
                 requiredCrew: 4,
                 range: 200,
@@ -601,8 +601,8 @@ class RNLIGame {
 
     generateCoastalLocation(stationCoords) {
         // Generate a mission location near the player's station
-        // IMPORTANT: Bias towards offshore to ensure water spawning
-        // Distance: 1 to 10 nautical miles from station (0.016 to 0.16 degrees)
+        // CRITICAL: Spawn far enough offshore to ensure water-only
+        // Distance: 3 to 10 nautical miles from station
 
         // Determine offshore direction based on latitude/longitude
         // For UK: Generally south and west are offshore
@@ -622,20 +622,21 @@ class RNLIGame {
             offshoreAngle = Math.PI * 1.5; // South
         }
 
-        // Add random variation (±90 degrees) to offshore direction
-        const angleVariation = (Math.random() - 0.5) * Math.PI; // ±90 degrees
+        // Add random variation (±60 degrees) to offshore direction
+        const angleVariation = (Math.random() - 0.5) * Math.PI * 0.66; // ±60 degrees
         const angle = offshoreAngle + angleVariation;
 
-        const minDistance = 0.02; // ~1.25 nautical miles (further from shore)
-        const maxDistance = 0.16;  // ~10 nautical miles
+        // Increased minimum distance to 3nm to guarantee deep water
+        const minDistance = 0.05; // ~3 nautical miles
+        const maxDistance = 0.16; // ~10 nautical miles
         const distance = Math.random() * (maxDistance - minDistance) + minDistance;
 
         // Calculate coordinates
         const lat = stationCoords.lat + Math.cos(angle) * distance;
         const lng = stationCoords.lng + Math.sin(angle) * distance;
 
-        // Generate location description based on distance and direction
-        const distanceNM = Math.round((distance / 0.016) * 10) / 10; // Convert to nautical miles
+        // Calculate actual distance in nautical miles
+        const distanceNM = Math.round((distance / 0.016) * 10) / 10;
 
         // Determine compass direction
         const degrees = (angle * 180 / Math.PI + 360) % 360;
@@ -653,25 +654,20 @@ class RNLIGame {
         let locationType = '';
         let locationName = '';
 
-        if (distanceNM < 2) {
-            // Very close - inshore waters
-            const nearFeatures = ['Inshore Waters', 'Coastal Waters', 'Near Shore', 'Close to Coast'];
-            locationType = nearFeatures[Math.floor(Math.random() * nearFeatures.length)];
-            locationName = `${distanceNM}nm ${direction} - ${locationType}`;
-        } else if (distanceNM < 4) {
-            // Close - coastal zone
-            const closeFeatures = ['Coastal Zone', 'Mid-Channel', 'Bay Waters', 'Coastal Waters'];
-            locationType = closeFeatures[Math.floor(Math.random() * closeFeatures.length)];
+        if (distanceNM < 4) {
+            // Close - inshore waters
+            const features = ['Inshore Waters', 'Coastal Waters', 'Coastal Zone'];
+            locationType = features[Math.floor(Math.random() * features.length)];
             locationName = `${distanceNM}nm ${direction} - ${locationType}`;
         } else if (distanceNM < 7) {
             // Medium - offshore
-            const mediumFeatures = ['Offshore Waters', 'Open Water', 'Sea Area', 'Offshore Zone'];
-            locationType = mediumFeatures[Math.floor(Math.random() * mediumFeatures.length)];
+            const features = ['Offshore Waters', 'Open Water', 'Sea Area'];
+            locationType = features[Math.floor(Math.random() * features.length)];
             locationName = `${distanceNM}nm ${direction} - ${locationType}`;
         } else {
             // Far - distant offshore
-            const farFeatures = ['Distant Offshore', 'Open Sea', 'Offshore Zone', 'Deep Water'];
-            locationType = farFeatures[Math.floor(Math.random() * farFeatures.length)];
+            const features = ['Distant Offshore', 'Open Sea', 'Deep Water'];
+            locationType = features[Math.floor(Math.random() * features.length)];
             locationName = `${distanceNM}nm ${direction} - ${locationType}`;
         }
 
@@ -685,6 +681,22 @@ class RNLIGame {
         };
     }
 
+    calculateDistance(from, to) {
+        // Calculate distance in nautical miles using haversine formula
+        const R = 3440.065; // Earth radius in nautical miles
+        const lat1 = from.lat * Math.PI / 180;
+        const lat2 = to.lat * Math.PI / 180;
+        const deltaLat = (to.lat - from.lat) * Math.PI / 180;
+        const deltaLng = (to.lng - from.lng) * Math.PI / 180;
+
+        const a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+                  Math.cos(lat1) * Math.cos(lat2) *
+                  Math.sin(deltaLng / 2) * Math.sin(deltaLng / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return R * c; // Distance in nautical miles
+    }
+
     dispatchToMission(missionId, unitIds, crewAssignments = {}) {
         const mission = this.missions.find(m => m.id === missionId);
         if (!mission || mission.status !== 'waiting') return false;
@@ -695,9 +707,23 @@ class RNLIGame {
         // Dispatch units and assign crew
         units.forEach(unit => {
             if (unit.status === 'available') {
+                const station = this.stations.find(s => s.id === unit.stationId);
+                const unitTypes = this.getUnitTypes();
+                const unitTemplate = unitTypes[unit.type];
+
+                // Calculate realistic travel time based on distance and speed
+                const distanceNM = this.calculateDistance(station.coordinates, mission.coordinates);
+                const speedKnots = unitTemplate.speed;
+                const travelTimeHours = distanceNM / speedKnots;
+
+                // Time compression: 60x (1 real minute = 1 game hour)
+                // Minimum 10 seconds for very close missions
+                const travelTimeMs = Math.max(10000, travelTimeHours * 60 * 1000);
+
                 unit.status = 'dispatched';
                 unit.currentMission = missionId;
                 unit.progress = 0;
+                unit.travelTime = travelTimeMs; // Store for return journey
                 mission.dispatchedUnits.push(unit.id);
 
                 // Assign crew to this unit
@@ -715,28 +741,26 @@ class RNLIGame {
                     return c ? c.name : '';
                 }).filter(n => n).join(', ');
 
-                this.logActivity(`${unit.name} dispatched with crew: ${crewNames || 'No crew assigned'}`);
+                const etaMinutes = Math.round(travelTimeMs / 60000);
+                this.logActivity(`${unit.name} dispatched - ${distanceNM.toFixed(1)}nm at ${speedKnots}kts - ETA ${etaMinutes} min`);
+
+                // Animate unit progress
+                this.animateUnit(unit, travelTimeMs);
+
+                // Arrival at scene
+                setTimeout(() => {
+                    if (mission.status === 'enroute') {
+                        mission.status = 'onscene';
+                        this.logActivity(`${unit.name} on scene at ${mission.title}`);
+
+                        // Complete mission after 20-40 seconds
+                        setTimeout(() => this.completeMission(missionId), Math.random() * 20000 + 20000);
+                    }
+                }, travelTimeMs);
             }
         });
 
         mission.status = 'enroute';
-
-        // Calculate arrival time (15-60 seconds)
-        const arrivalTime = Math.random() * 45000 + 15000;
-
-        // Animate unit progress
-        units.forEach(unit => this.animateUnit(unit, arrivalTime));
-
-        // Arrival
-        setTimeout(() => {
-            if (mission.status === 'enroute') {
-                mission.status = 'onscene';
-                this.logActivity(`Units on scene at ${mission.title}`);
-
-                // Complete mission after 20-40 seconds
-                setTimeout(() => this.completeMission(missionId), Math.random() * 20000 + 20000);
-            }
-        }, arrivalTime);
 
         this.updateMissionsList();
         this.renderMap();
@@ -765,7 +789,7 @@ class RNLIGame {
 
     calculateWaterPath(fromCoords, toCoords, progress) {
         // Calculate a curved path that stays in water
-        // Add an arc that bends slightly offshore to avoid land
+        // Creates a strong offshore arc to avoid coastal land
 
         // Direct path
         const directLat = fromCoords.lat + (toCoords.lat - fromCoords.lat) * progress;
@@ -777,9 +801,9 @@ class RNLIGame {
             Math.pow(toCoords.lng - fromCoords.lng, 2)
         );
 
-        // Add a curved offset that peaks at 50% progress
-        // This creates an arc path instead of straight line
-        const curveAmount = distance * 0.15; // 15% of total distance
+        // Add a strong curved offset that peaks at 50% progress
+        // Increased curve for better land avoidance
+        const curveAmount = distance * 0.35; // 35% of total distance (was 15%)
         const curveProgress = Math.sin(progress * Math.PI); // Bell curve
 
         // Perpendicular direction (rotate 90 degrees)
@@ -788,9 +812,11 @@ class RNLIGame {
         const perpLat = -dy / distance;
         const perpLng = dx / distance;
 
-        // Apply curve offset (bias towards offshore/south)
-        const curvedLat = directLat + perpLat * curveAmount * curveProgress;
-        const curvedLng = directLng + perpLng * curveAmount * curveProgress * 0.5;
+        // Apply curve offset strongly biased towards south/offshore
+        // For UK waters, southern direction is generally offshore
+        const offshoreMultiplier = fromCoords.lat > toCoords.lat ? 1.5 : 1.0; // Stronger curve when going south
+        const curvedLat = directLat + perpLat * curveAmount * curveProgress * offshoreMultiplier;
+        const curvedLng = directLng + perpLng * curveAmount * curveProgress * 0.8; // Increased from 0.5
 
         return { lat: curvedLat, lng: curvedLng };
     }
@@ -825,14 +851,20 @@ class RNLIGame {
                 unit.returnFrom = { lat: mission.coordinates.lat, lng: mission.coordinates.lng }; // Store return location
                 unit.progress = 0;
 
+                // Use same travel time as outbound journey (stored in unit)
+                const returnTime = unit.travelTime || 20000;
+
+                const etaMinutes = Math.round(returnTime / 60000);
+                this.logActivity(`${unit.name} returning to station - ETA ${etaMinutes} min`);
+
                 // Animate return journey
-                const returnTime = Math.random() * 10000 + 10000; // 10-20 seconds
                 this.animateUnit(unit, returnTime);
 
                 // Arrive back at station
                 setTimeout(() => {
                     unit.status = 'available';
                     unit.returnFrom = null;
+                    unit.travelTime = null;
                     this.logActivity(`${unit.name} returned to station`);
                     this.updateFleetScreen();
                     this.renderMap();
