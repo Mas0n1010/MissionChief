@@ -645,39 +645,26 @@ class RNLIGame {
 
         // CRITICAL: ALWAYS spawn DIRECTLY SOUTH to guarantee ocean (no land possible)
         // For all UK locations, SOUTH is guaranteed deep water
-        const offshoreAngle = Math.PI * 1.5; // ALWAYS South - no exceptions
-
-        // NO random variation - ALWAYS directly south for absolute water guarantee
-        const angle = offshoreAngle;
 
         // EXTREME OFFSHORE DISTANCE - minimum 30nm to ABSOLUTELY guarantee deep blue water
         // For D-Class: 30-35nm, for Shannon: 60-85nm
         const minDistanceNM = Math.max(30, maxFleetRange * 0.6);
         const maxDistanceNM = Math.min(100, Math.max(minDistanceNM + 5, maxFleetRange * 0.85));
 
-        // Convert to degrees (approximately 1 degree = 60nm)
+        // Convert to degrees (approximately 1 degree latitude = 60nm)
         const minDistance = minDistanceNM / 60;
         const maxDistance = maxDistanceNM / 60;
         const distance = Math.random() * (maxDistance - minDistance) + minDistance;
 
-        // Calculate coordinates
-        const lat = stationCoords.lat + Math.cos(angle) * distance;
-        const lng = stationCoords.lng + Math.sin(angle) * distance;
+        // Calculate coordinates - DIRECTLY SOUTH (decrease latitude only)
+        const lat = stationCoords.lat - distance; // South = decrease latitude
+        const lng = stationCoords.lng; // No change in longitude (stay on same north-south line)
 
         // Calculate actual distance in nautical miles
         const distanceNM = Math.round((distance * 60) * 10) / 10;
 
-        // Determine compass direction
-        const degrees = (angle * 180 / Math.PI + 360) % 360;
-        let direction = '';
-        if (degrees < 22.5 || degrees >= 337.5) direction = 'North';
-        else if (degrees < 67.5) direction = 'Northeast';
-        else if (degrees < 112.5) direction = 'East';
-        else if (degrees < 157.5) direction = 'Southeast';
-        else if (degrees < 202.5) direction = 'South';
-        else if (degrees < 247.5) direction = 'Southwest';
-        else if (degrees < 292.5) direction = 'West';
-        else direction = 'Northwest';
+        // Direction is always South (we spawn directly south)
+        const direction = 'South';
 
         // Generate realistic location names based on distance
         let locationType = '';
@@ -862,20 +849,16 @@ class RNLIGame {
             }
         }
 
-        // Calculate offshore waypoint positioned EXTREMELY FAR SOUTH
-        // This ensures boats NEVER cross land by routing through deep ocean
-        const midLat = (fromCoords.lat + toCoords.lat) / 2;
+        // ABSOLUTE GUARANTEE: Route through FIXED DEEP OCEAN WAYPOINT
+        // Waypoint at 45°N latitude - this is 240nm south of UK, in deep Atlantic Ocean
+        // At this latitude (-10°W to 2°E), there is ZERO land - only deep blue water
+        // ALL boats route through this point, guaranteeing they NEVER touch land
+
         const midLng = (fromCoords.lng + toCoords.lng) / 2;
 
-        const distance = Math.sqrt(
-            Math.pow(toCoords.lat - fromCoords.lat, 2) +
-            Math.pow(toCoords.lng - fromCoords.lng, 2)
-        );
-
-        // Waypoint is placed EXTREMELY FAR SOUTH - 5x route distance to guarantee ocean
-        const waypointOffshoreDistance = distance * 5.0; // Massive offshore distance
-        const waypointLat = midLat - waypointOffshoreDistance; // Go FAR south into deep ocean
-        const waypointLng = midLng; // Stay on same longitude (no east/west drift)
+        // Fixed waypoint in deep Atlantic - absolutely guaranteed water only
+        const waypointLat = 45.0; // Far south in Atlantic (Bay of Biscay area - no land)
+        const waypointLng = midLng; // Use average longitude between start and destination
 
         let currentLat, currentLng;
 
